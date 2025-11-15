@@ -3,8 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.gms.google.services)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.gms.google.services)
 }
 
 android {
@@ -67,8 +67,8 @@ dependencies {
     // Navigation
     implementation(libs.navigation.compose)
     // Firebase (BOM)
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
+    implementation(platform(libs.firebase.bom)) // <-- ESTA LÍNEA ES LA CLAVE
+    implementation(libs.firebase.auth)          // Esta línea la tenías
     implementation(libs.firebase.firestore)
 
     testImplementation(libs.junit)
