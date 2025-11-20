@@ -1,5 +1,7 @@
 package com.pantrychef.back.model
 
+import com.pantrychef.back.model.enums.Source
+
 data class ShoppingItem(
     val id: String,
     val productName: String,

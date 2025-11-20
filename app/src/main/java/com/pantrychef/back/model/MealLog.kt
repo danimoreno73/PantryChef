@@ -1,5 +1,7 @@
 package com.pantrychef.back.model
 
+import com.pantrychef.back.model.enums.MealType
+
 data class MealLog(
     val id: String,
     val recipeId: String,

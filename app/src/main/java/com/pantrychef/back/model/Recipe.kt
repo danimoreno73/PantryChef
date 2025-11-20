@@ -1,5 +1,7 @@
 package com.pantrychef.back.model
 
+import com.pantrychef.back.model.enums.Difficulty
+
 data class Recipe(
     val id: String,
     val name: String,
