@@ -54,6 +54,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    // Material Icons Extended (para todos los iconos)
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+
     // Hilt (DI)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler) // ksp en lugar de implementation

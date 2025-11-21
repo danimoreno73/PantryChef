@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
+import com.pantrychef.front.auth.LoginScreen
 
 @Composable
 fun NavGraph(
@@ -19,8 +20,7 @@ fun NavGraph(
     ) {
         // Auth Flow
         composable(Routes.LOGIN) {
-            // LoginScreen(navController) - Implementaremos después
-            TemporaryPlaceholder("Login Screen")
+            LoginScreen(navController)
         }
 
         composable(Routes.REGISTER) {
