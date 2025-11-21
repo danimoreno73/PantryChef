@@ -9,7 +9,7 @@ data class ProductEntity(
     val name: String,
     val category: String,
     val quantity: Float,
-    val unit: Unit,
+    val unit: String,
     val lowStockThreshold: Float,
     val location: String? = null,
     val brand: String? = null,
