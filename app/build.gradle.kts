@@ -59,6 +59,7 @@ dependencies {
 
     // Hilt (DI)
     implementation(libs.hilt.android)
+    implementation(libs.engage.core)
     ksp(libs.hilt.compiler) // ksp en lugar de implementation
     implementation(libs.hilt.navigation.compose)
     // Room (Local DB)
