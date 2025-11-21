@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.pantrychef.front.auth.LoginScreen
+import com.pantrychef.front.auth.RegisterScreen
 
 @Composable
 fun NavGraph(
@@ -24,8 +25,7 @@ fun NavGraph(
         }
 
         composable(Routes.REGISTER) {
-            // RegisterScreen(navController)
-            TemporaryPlaceholder("Register Screen")
+            RegisterScreen(navController)
         }
 
         // Main App Flow
