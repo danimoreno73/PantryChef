@@ -16,6 +16,7 @@ import com.pantrychef.front.auth.LoginScreen
 import com.pantrychef.front.auth.RegisterScreen
 import com.pantrychef.front.components.PantryChefBottomNav
 import com.pantrychef.front.home.HomeScreen
+import com.pantrychef.front.pantry.ProductDetailScreen
 
 @Composable
 fun NavGraph(
@@ -93,8 +94,11 @@ fun NavGraph(
                 route = Routes.PRODUCT_DETAIL,
                 arguments = listOf(navArgument("productId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val productId = backStackEntry.arguments?.getString("productId")
-                TemporaryPlaceholder("Product Detail: $productId")
+                val productId = backStackEntry.arguments?.getString("productId") ?: return@composable
+                ProductDetailScreen(
+                    productId = productId,
+                    navController = navController
+                )
             }
 
             composable(Routes.SHOPPING_LIST) {

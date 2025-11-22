@@ -107,7 +107,7 @@ private fun RecipeCardHorizontalPreview() {
                 title = "Tacos de pollo",
                 prepTime = "30 min",
                 servings = "3 porciones",
-                imageUrl = null,
+                imageUrl = "https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=200",
                 badge = "2/4",
                 badgeSeverity = BadgeSeverity.WARNING,
                 onClick = {}
