@@ -1,6 +1,7 @@
 package com.pantrychef.back.model
 
 import com.pantrychef.back.model.enums.Source
+import com.pantrychef.back.model.enums.Unit
 
 data class ShoppingItem(
     val id: String,

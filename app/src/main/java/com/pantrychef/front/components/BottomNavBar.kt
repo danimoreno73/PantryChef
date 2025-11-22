@@ -6,6 +6,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Cabin
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NoFood
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.Cabin
 import androidx.compose.material.icons.outlined.Fastfood
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Kitchen
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.NoFood
@@ -55,8 +57,8 @@ fun PantryChefBottomNav(
         BottomNavItem(
             label = "Despensa",
             route = Routes.PANTRY,
-            selectedIcon = Icons.Filled.Outbox, // Usaremos este temporalmente
-            unselectedIcon = Icons.Outlined.Outbox
+            selectedIcon = Icons.Filled.Kitchen, // Usaremos este temporalmente
+            unselectedIcon = Icons.Outlined.Kitchen
         ),
         BottomNavItem(
             label = "Recetas",

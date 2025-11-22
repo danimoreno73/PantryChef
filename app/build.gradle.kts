@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.gms.google.services)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -75,9 +76,12 @@ dependencies {
     // Navigation
     implementation(libs.navigation.compose)
     // Firebase (BOM)
-    implementation(platform(libs.firebase.bom)) // <-- ESTA LÍNEA ES LA CLAVE
+    implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)          // Esta línea la tenías
     implementation(libs.firebase.firestore)
+    // Json
+    implementation(libs.kotlinx.serialization.json)
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
