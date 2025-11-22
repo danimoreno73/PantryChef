@@ -1,23 +1,28 @@
 package com.pantrychef.back.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "ingredients",
-    foreignKeys = [ForeignKey(
-        entity = RecipeEntity::class,
-        parentColumns = ["id"],
-        childColumns = ["recipeId"],
-        onDelete = ForeignKey.CASCADE
-    )]
+    foreignKeys = [
+        ForeignKey(
+            entity = RecipeEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["recipeId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["recipeId"])]
 )
 data class IngredientEntity(
     @PrimaryKey val id: String,
-    val recipeId: String,
-    val productName: String,
+    @ColumnInfo(name = "recipeId") val recipeId: String,
+    @ColumnInfo(name = "product_name") val productName: String,
     val quantity: Float,
     val unit: String,
-    val isOptional: Boolean
+    @ColumnInfo(name = "is_optional") val isOptional: Boolean
 )

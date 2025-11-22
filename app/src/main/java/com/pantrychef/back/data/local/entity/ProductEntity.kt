@@ -1,5 +1,6 @@
 package com.pantrychef.back.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -11,7 +12,7 @@ data class ProductEntity(
     val quantity: Float,
     val unit: String,
     val lowStockThreshold: Float,
-    val location: String? = null,
-    val brand: String? = null,
-    val updatedAt: Long
+    val location: String?,
+    val brand: String?,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long
 )
