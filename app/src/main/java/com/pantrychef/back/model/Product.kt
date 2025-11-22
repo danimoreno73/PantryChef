@@ -1,6 +1,7 @@
 package com.pantrychef.back.model
 
 import com.pantrychef.back.model.enums.Category
+import com.pantrychef.back.model.enums.Unit
 
 data class Product(
     val id: String,
