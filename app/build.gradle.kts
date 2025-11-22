@@ -57,9 +57,13 @@ dependencies {
     // Material Icons Extended (para todos los iconos)
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
+    // Coil para cargar imágenes
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
     // Hilt (DI)
     implementation(libs.hilt.android)
     implementation(libs.engage.core)
+    implementation(libs.androidx.ui)
     ksp(libs.hilt.compiler) // ksp en lugar de implementation
     implementation(libs.hilt.navigation.compose)
     // Room (Local DB)

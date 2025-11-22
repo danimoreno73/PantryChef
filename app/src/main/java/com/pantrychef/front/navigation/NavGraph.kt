@@ -15,6 +15,7 @@ import androidx.navigation.NavType
 import com.pantrychef.front.auth.LoginScreen
 import com.pantrychef.front.auth.RegisterScreen
 import com.pantrychef.front.components.PantryChefBottomNav
+import com.pantrychef.front.home.HomeScreen
 
 @Composable
 fun NavGraph(
@@ -69,7 +70,7 @@ fun NavGraph(
 
             // Main App Screens (con BottomNav)
             composable(Routes.HOME) {
-                TemporaryPlaceholder("Home Screen")
+                HomeScreen(navController)
             }
 
             composable(Routes.PANTRY) {
