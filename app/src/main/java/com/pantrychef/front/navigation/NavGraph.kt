@@ -6,6 +6,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,6 +18,7 @@ import com.pantrychef.front.auth.RegisterScreen
 import com.pantrychef.front.components.PantryChefBottomNav
 import com.pantrychef.front.home.HomeScreen
 import com.pantrychef.front.pantry.ProductDetailScreen
+import com.pantrychef.front.recipes.RecipesScreen
 
 @Composable
 fun NavGraph(
@@ -43,8 +45,10 @@ fun NavGraph(
                 PantryChefBottomNav(
                     currentRoute = currentRoute,
                     onNavigate = { route ->
+                        if (currentRoute == route) return@PantryChefBottomNav
+
                         navController.navigate(route) {
-                            popUpTo(Routes.HOME) {
+                            popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
                             }
                             launchSingleTop = true
@@ -79,7 +83,7 @@ fun NavGraph(
             }
 
             composable(Routes.RECIPES) {
-                TemporaryPlaceholder("Recipes Screen")
+                RecipesScreen(navController)
             }
 
             composable(
