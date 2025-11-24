@@ -20,6 +20,7 @@ import com.pantrychef.front.home.HomeScreen
 import com.pantrychef.front.pantry.ProductDetailScreen
 import com.pantrychef.front.recipes.RecipeDetailScreen
 import com.pantrychef.front.recipes.RecipesScreen
+import com.pantrychef.front.shoppinglist.ShoppingListScreen
 
 @Composable
 fun NavGraph(
@@ -110,7 +111,7 @@ fun NavGraph(
             }
 
             composable(Routes.SHOPPING_LIST) {
-                TemporaryPlaceholder("Shopping List Screen")
+                ShoppingListScreen(navController)
             }
 
             composable(Routes.MEAL_LOG) {
