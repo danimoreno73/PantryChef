@@ -4,32 +4,27 @@ import com.pantrychef.back.data.mock.MockAuthDataSource
 import com.pantrychef.back.model.User
 import com.pantrychef.back.repository.AuthRepository
 
-class AuthRepositoryImpl(mockAuthDataSource: MockAuthDataSource) : AuthRepository{
-    override suspend fun login(
-        email: String,
-        password: String
-    ): Result<User> {
-        TODO("Not yet implemented")
+class AuthRepositoryImpl(
+    private val mockAuthDataSource: MockAuthDataSource
+) : AuthRepository {
+
+    override suspend fun login(email: String, password: String): Result<User> {
+        return mockAuthDataSource.login(email, password)
     }
 
-    override suspend fun register(
-        name: String,
-        email: String,
-        password: String
-    ): Result<User> {
-        TODO("Not yet implemented")
+    override suspend fun register(name: String, email: String, password: String): Result<User> {
+        return mockAuthDataSource.register(name, email, password)
     }
 
     override suspend fun logout(): Result<Unit> {
-        TODO("Not yet implemented")
+        return mockAuthDataSource.logout()
     }
 
     override suspend fun getCurrentUser(): Result<User?> {
-        TODO("Not yet implemented")
+        return mockAuthDataSource.getCurrentUser()
     }
 
     override suspend fun resetPassword(email: String): Result<Unit> {
-        TODO("Not yet implemented")
+        return mockAuthDataSource.resetPassword(email)
     }
-
 }
