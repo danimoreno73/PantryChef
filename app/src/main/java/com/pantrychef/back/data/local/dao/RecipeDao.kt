@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import com.pantrychef.back.data.local.entity.IngredientEntity
 import com.pantrychef.back.data.local.entity.RecipeEntity
 import com.pantrychef.back.data.local.entity.RecipeWithIngredients
@@ -14,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RecipeDao {
     @Transaction
-    @Query("SELECT * FROM recipes")
+    @Query("SELECT * FROM recipes ORDER BY name ASC")
     fun getAllRecipesWithIngredients(): Flow<List<RecipeWithIngredients>>
 
     @Transaction
@@ -27,9 +28,15 @@ interface RecipeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertIngredients(ingredients: List<IngredientEntity>)
 
-    @Delete
-    suspend fun deleteRecipe(recipe: RecipeEntity)
+    @Update
+    suspend fun updateRecipe(recipe: RecipeEntity)
+
+    @Query("DELETE FROM recipes WHERE id = :id")
+    suspend fun deleteRecipe(id: String)
 
     @Query("DELETE FROM ingredients WHERE recipeId = :recipeId")
     suspend fun deleteIngredientsByRecipe(recipeId: String)
+
+    @Query("SELECT * FROM recipes WHERE created_by = :userId ORDER BY name ASC")
+    fun getUserRecipes(userId: String): Flow<List<RecipeEntity>>
 }

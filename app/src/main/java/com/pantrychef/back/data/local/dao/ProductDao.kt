@@ -23,12 +23,12 @@ interface ProductDao {
     @Update
     suspend fun updateProduct(product: ProductEntity)
 
-    @Delete
-    suspend fun deleteProduct(product: ProductEntity)
+    @Query("DELETE FROM products WHERE id = :id")
+    suspend fun deleteProduct(id: String)
 
-    @Query("SELECT * FROM products WHERE category = :category")
+    @Query("SELECT * FROM products WHERE category = :category ORDER BY name ASC")
     fun getProductsByCategory(category: String): Flow<List<ProductEntity>>
 
-    @Query("SELECT * FROM products WHERE name LIKE '%' || :query || '%'")
+    @Query("SELECT * FROM products WHERE name LIKE '%' || :query || '%' ORDER BY name ASC")
     fun searchProducts(query: String): Flow<List<ProductEntity>>
 }
