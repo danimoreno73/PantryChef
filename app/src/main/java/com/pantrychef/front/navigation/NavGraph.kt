@@ -17,6 +17,7 @@ import com.pantrychef.front.auth.LoginScreen
 import com.pantrychef.front.auth.RegisterScreen
 import com.pantrychef.front.components.PantryChefBottomNav
 import com.pantrychef.front.home.HomeScreen
+import com.pantrychef.front.meallog.MealLogScreen
 import com.pantrychef.front.pantry.ProductDetailScreen
 import com.pantrychef.front.recipes.RecipeDetailScreen
 import com.pantrychef.front.recipes.RecipesScreen
@@ -115,7 +116,7 @@ fun NavGraph(
             }
 
             composable(Routes.MEAL_LOG) {
-                TemporaryPlaceholder("Meal Log Screen")
+                MealLogScreen(navController)
             }
 
             composable(Routes.SETTINGS) {
