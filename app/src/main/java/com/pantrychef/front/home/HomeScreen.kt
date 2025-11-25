@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +57,10 @@ fun HomeScreen(
                 navController.navigate(Routes.SHOPPING_LIST)
                 viewModel.clearNavigation()
             }
+            HomeNavigation.ToSettings -> {
+                navController.navigate(Routes.SETTINGS)
+                viewModel.clearNavigation()
+            }
             null -> { /* No navigation */ }
         }
     }
@@ -97,9 +102,9 @@ private fun HomeContent(
                             contentDescription = "Vista en cuadrícula"
                         )
                     }
-                    IconButton(onClick = { /* TODO: Settings */ }) {
+                    IconButton(onClick = { onEvent(HomeEvent.SettingsClicked) }) {  // <- Cambiar esto
                         Icon(
-                            imageVector = Icons.Filled.Settings,
+                            imageVector = Icons.Outlined.Settings,
                             contentDescription = "Configuración"
                         )
                     }

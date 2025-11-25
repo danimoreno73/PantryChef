@@ -57,6 +57,7 @@ sealed interface HomeEvent {
     object ViewAllAlertsClicked : HomeEvent
     object ViewAllRecipesClicked : HomeEvent
     object GoToShoppingListClicked : HomeEvent
+    object SettingsClicked : HomeEvent
 }
 
 sealed interface HomeNavigation {
@@ -65,6 +66,7 @@ sealed interface HomeNavigation {
     object ToPantry : HomeNavigation
     object ToRecipes : HomeNavigation
     object ToShoppingList : HomeNavigation
+    object ToSettings : HomeNavigation
 }
 
 @HiltViewModel
@@ -113,6 +115,10 @@ class HomeViewModel @Inject constructor(
 
             HomeEvent.GoToShoppingListClicked -> {
                 _navigation.value = HomeNavigation.ToShoppingList
+            }
+
+            HomeEvent.SettingsClicked -> {
+                _navigation.value = HomeNavigation.ToSettings
             }
         }
     }

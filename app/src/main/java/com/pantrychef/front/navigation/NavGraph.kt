@@ -23,6 +23,7 @@ import com.pantrychef.front.pantry.PantryScreen
 import com.pantrychef.front.pantry.ProductDetailScreen
 import com.pantrychef.front.recipes.RecipeDetailScreen
 import com.pantrychef.front.recipes.RecipesScreen
+import com.pantrychef.front.settings.SettingsScreen
 import com.pantrychef.front.shoppinglist.ShoppingListScreen
 
 @Composable
@@ -142,7 +143,7 @@ fun NavGraph(
             }
 
             composable(Routes.SETTINGS) {
-                TemporaryPlaceholder("Settings Screen")
+                SettingsScreen(navController)
             }
         }
     }
