@@ -37,6 +37,8 @@ interface RecipeDao {
     @Query("DELETE FROM ingredients WHERE recipeId = :recipeId")
     suspend fun deleteIngredientsByRecipe(recipeId: String)
 
+    // Cambiado de query a Transaction y devolvemos con ingredientes para no perder la relación con los ingredientes
+    @Transaction
     @Query("SELECT * FROM recipes WHERE created_by = :userId ORDER BY name ASC")
-    fun getUserRecipes(userId: String): Flow<List<RecipeEntity>>
+    fun getUserRecipes(userId: String): Flow<List<RecipeWithIngredients>>
 }

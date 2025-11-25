@@ -8,5 +8,6 @@ interface ShoppingListRepository {
     suspend fun addItem(item: ShoppingItem): Result<Unit>
     suspend fun removeItem(id: String): Result<Unit>
     suspend fun markAsPurchased(id: String): Result<Unit>
+    suspend fun unmarkAsPurchased(id: String): Result<Unit>
     suspend fun clearPurchased(): Result<Unit>
 }
