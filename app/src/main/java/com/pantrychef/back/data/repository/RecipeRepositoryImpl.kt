@@ -69,12 +69,10 @@ class RecipeRepositoryImpl(
             Result.failure(e)
         }
     }
-    // TODO("Implementar funcion")
+    // TODO("Comprobar si está bien la función")
     override suspend fun getUserRecipes(userId: String): Flow<List<Recipe>> {
-        return recipeDao.getUserRecipes(userId).map { entities ->
-            // Necesitamos obtener ingredientes para cada receta
-            // Por simplicidad, retornar lista vacía aquí o hacer query adicional
-            emptyList()
+        return recipeDao.getUserRecipes(userId).map { recipeWithIngredientsList ->
+            recipeWithIngredientsList.map { RecipeMapper.entityToModel(it)}
         }
     }
 
