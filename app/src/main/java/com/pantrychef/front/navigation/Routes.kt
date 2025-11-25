@@ -12,7 +12,12 @@ object Routes {
     const val MEAL_LOG = "meallog"
     const val SETTINGS = "settings"
 
+    const val PANTRY_ADD = "pantry/add"
+    const val PANTRY_EDIT = "pantry/edit/{productId}"
+
     // Helper functions para rutas con parámetros
     fun recipeDetail(recipeId: String) = "recipes/$recipeId"
     fun productDetail(productId: String) = "products/$productId"
+
+    fun pantryEdit(productId: String) = "pantry/edit/$productId"
 }

@@ -18,6 +18,8 @@ import com.pantrychef.front.auth.RegisterScreen
 import com.pantrychef.front.components.PantryChefBottomNav
 import com.pantrychef.front.home.HomeScreen
 import com.pantrychef.front.meallog.MealLogScreen
+import com.pantrychef.front.pantry.AddEditProductScreen
+import com.pantrychef.front.pantry.PantryScreen
 import com.pantrychef.front.pantry.ProductDetailScreen
 import com.pantrychef.front.recipes.RecipeDetailScreen
 import com.pantrychef.front.recipes.RecipesScreen
@@ -82,7 +84,27 @@ fun NavGraph(
             }
 
             composable(Routes.PANTRY) {
-                TemporaryPlaceholder("Pantry Screen")
+                PantryScreen(navController)
+            }
+
+            composable(Routes.PANTRY_ADD) {
+                AddEditProductScreen(
+                    productId = null,
+                    navController = navController
+                )
+            }
+
+            composable(
+                route = Routes.PANTRY_EDIT,
+                arguments = listOf(
+                    navArgument("productId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val productId = checkNotNull(backStackEntry.arguments?.getString("productId"))
+                AddEditProductScreen(
+                    productId = productId,
+                    navController = navController
+                )
             }
 
             composable(Routes.RECIPES) {
