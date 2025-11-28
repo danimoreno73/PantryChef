@@ -41,4 +41,14 @@ interface RecipeDao {
     @Transaction
     @Query("SELECT * FROM recipes WHERE created_by = :userId ORDER BY name ASC")
     fun getUserRecipes(userId: String): Flow<List<RecipeWithIngredients>>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT recipes.* FROM recipes 
+        LEFT JOIN ingredients ON recipes.id = ingredients.recipeId 
+        WHERE recipes.name LIKE '%' || :query || '%' 
+        OR ingredients.product_name LIKE '%' || :query || '%'
+        ORDER BY recipes.name ASC
+    """)
+    fun searchRecipes(query: String): Flow<List<RecipeWithIngredients>>
 }
