@@ -2,7 +2,7 @@ package com.pantrychef.front.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pantrychef.front.components.AuthProvider
+import com.pantrychef.back.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +39,7 @@ sealed interface LoginNavigation {
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    // TODO: Inject AuthRepository cuando esté listo
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -51,17 +51,11 @@ class LoginViewModel @Inject constructor(
     fun onEvent(event: LoginEvent) {
         when (event) {
             is LoginEvent.EmailChanged -> {
-                _uiState.update { it.copy(
-                    email = event.email,
-                    emailError = null
-                ) }
+                _uiState.update { it.copy(email = event.email, emailError = null) }
             }
 
             is LoginEvent.PasswordChanged -> {
-                _uiState.update { it.copy(
-                    password = event.password,
-                    passwordError = null
-                ) }
+                _uiState.update { it.copy(password = event.password, passwordError = null) }
             }
 
             is LoginEvent.RememberMeToggled -> {
@@ -69,11 +63,12 @@ class LoginViewModel @Inject constructor(
             }
 
             LoginEvent.LoginClicked -> {
-                performLogin()
+                login()
             }
 
             is LoginEvent.SocialLoginClicked -> {
-                performSocialLogin(event.provider)
+                // TODO: Implement social login
+                _navigation.value = LoginNavigation.ToHome
             }
 
             LoginEvent.ForgotPasswordClicked -> {
@@ -86,58 +81,43 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    private fun performLogin() {
-        // Validación local
-        val emailError = validateEmail(_uiState.value.email)
-        val passwordError = validatePassword(_uiState.value.password)
+    private fun login() {
+        val emailError = if (!android.util.Patterns.EMAIL_ADDRESS.matcher(_uiState.value.email).matches()) {
+            "Email inválido"
+        } else null
+
+        val passwordError = if (_uiState.value.password.length < 6) {
+            "La contraseña debe tener al menos 6 caracteres"
+        } else null
 
         if (emailError != null || passwordError != null) {
             _uiState.update { it.copy(
                 emailError = emailError,
                 passwordError = passwordError
-            ) }
+            )}
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, loginError = null) }
 
-            // TODO: Llamar a AuthRepository.login()
-            // Por ahora, simulamos éxito después de 1 segundo
-            kotlinx.coroutines.delay(1000)
+            val result = authRepository.login(
+                email = _uiState.value.email,
+                password = _uiState.value.password
+            )
 
-            // Simulación: siempre éxito
-            _uiState.update { it.copy(isLoading = false) }
-            _navigation.value = LoginNavigation.ToHome
-        }
-    }
-
-    private fun performSocialLogin(provider: AuthProvider) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            // TODO: Implementar OAuth flow
-            kotlinx.coroutines.delay(1000)
-
-            _uiState.update { it.copy(isLoading = false) }
-            _navigation.value = LoginNavigation.ToHome
-        }
-    }
-
-    private fun validateEmail(email: String): String? {
-        return when {
-            email.isBlank() -> "El correo es requerido"
-            !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
-                "Correo electrónico inválido"
-            else -> null
-        }
-    }
-
-    private fun validatePassword(password: String): String? {
-        return when {
-            password.isBlank() -> "La contraseña es requerida"
-            password.length < 6 -> "La contraseña debe tener al menos 6 caracteres"
-            else -> null
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    _navigation.value = LoginNavigation.ToHome
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        loginError = error.message ?: "Error al iniciar sesión"
+                    )}
+                }
+            )
         }
     }
 

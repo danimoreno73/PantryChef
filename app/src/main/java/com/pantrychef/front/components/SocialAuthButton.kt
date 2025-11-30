@@ -1,27 +1,20 @@
 package com.pantrychef.front.components
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.pantrychef.front.auth.AuthProvider
 import com.pantrychef.front.theme.PantryChefTheme
 import com.pantrychef.front.theme.PrimaryGreenLight
-
-enum class AuthProvider {
-    APPLE,
-    GOOGLE
-}
 
 @Composable
 fun SocialAuthButton(
@@ -29,34 +22,41 @@ fun SocialAuthButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val text = when (provider) {
-        AuthProvider.APPLE -> "Apple"
-        AuthProvider.GOOGLE -> "Google"
-    }
-
-    Button(
+    Surface(
         onClick = onClick,
-        modifier = modifier.height(56.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = PrimaryGreenLight,
-            contentColor = MaterialTheme.colorScheme.primary
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-        shape = MaterialTheme.shapes.medium
+        color = PrimaryGreenLight,
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .height(56.dp)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(12.dp)
+            )
     ) {
         Row(
+            modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // TODO: Agregar iconos reales cuando tengamos material-icons-extended
             Text(
-                text = "🍎", // Emoji temporal para Apple
-                modifier = Modifier.width(20.dp)
+                text = when (provider) {
+                    AuthProvider.APPLE -> "🍎"
+                    AuthProvider.GOOGLE -> "G"
+                },
+                style = MaterialTheme.typography.titleMedium
             )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             Text(
-                text = text,
+                text = when (provider) {
+                    AuthProvider.APPLE -> "Apple"
+                    AuthProvider.GOOGLE -> "Google"
+                },
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 12.dp)
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -66,9 +66,17 @@ fun SocialAuthButton(
 @Composable
 private fun SocialAuthButtonPreview() {
     PantryChefTheme {
-        SocialAuthButton(
-            provider = AuthProvider.GOOGLE,
-            onClick = {}
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SocialAuthButton(
+                provider = AuthProvider.APPLE,
+                onClick = {},
+                modifier = Modifier.weight(1f)
+            )
+            SocialAuthButton(
+                provider = AuthProvider.GOOGLE,
+                onClick = {},
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }

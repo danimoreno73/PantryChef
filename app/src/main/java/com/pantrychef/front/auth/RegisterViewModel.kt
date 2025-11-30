@@ -2,7 +2,7 @@ package com.pantrychef.front.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pantrychef.front.components.AuthProvider
+import com.pantrychef.back.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,10 +27,10 @@ data class RegisterUiState(
 )
 
 sealed interface RegisterEvent {
-    data class FullNameChanged(val fullName: String) : RegisterEvent
+    data class FullNameChanged(val name: String) : RegisterEvent
     data class EmailChanged(val email: String) : RegisterEvent
     data class PasswordChanged(val password: String) : RegisterEvent
-    data class ConfirmPasswordChanged(val confirmPassword: String) : RegisterEvent
+    data class ConfirmPasswordChanged(val password: String) : RegisterEvent
     data class TermsToggled(val accepted: Boolean) : RegisterEvent
     object RegisterClicked : RegisterEvent
     data class SocialRegisterClicked(val provider: AuthProvider) : RegisterEvent
@@ -44,7 +44,7 @@ sealed interface RegisterNavigation {
 
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
-    // TODO: Inject AuthRepository
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
@@ -56,46 +56,32 @@ class RegisterViewModel @Inject constructor(
     fun onEvent(event: RegisterEvent) {
         when (event) {
             is RegisterEvent.FullNameChanged -> {
-                _uiState.update { it.copy(
-                    fullName = event.fullName,
-                    fullNameError = null
-                ) }
+                _uiState.update { it.copy(fullName = event.name, fullNameError = null) }
             }
 
             is RegisterEvent.EmailChanged -> {
-                _uiState.update { it.copy(
-                    email = event.email,
-                    emailError = null
-                ) }
+                _uiState.update { it.copy(email = event.email, emailError = null) }
             }
 
             is RegisterEvent.PasswordChanged -> {
-                _uiState.update { it.copy(
-                    password = event.password,
-                    passwordError = null
-                ) }
+                _uiState.update { it.copy(password = event.password, passwordError = null) }
             }
 
             is RegisterEvent.ConfirmPasswordChanged -> {
-                _uiState.update { it.copy(
-                    confirmPassword = event.confirmPassword,
-                    confirmPasswordError = null
-                ) }
+                _uiState.update { it.copy(confirmPassword = event.password, confirmPasswordError = null) }
             }
 
             is RegisterEvent.TermsToggled -> {
-                _uiState.update { it.copy(
-                    acceptedTerms = event.accepted,
-                    termsError = null
-                ) }
+                _uiState.update { it.copy(acceptedTerms = event.accepted, termsError = null) }
             }
 
             RegisterEvent.RegisterClicked -> {
-                performRegister()
+                register()
             }
 
             is RegisterEvent.SocialRegisterClicked -> {
-                performSocialRegister(event.provider)
+                // TODO: Implement social register
+                _navigation.value = RegisterNavigation.ToHome
             }
 
             RegisterEvent.LoginClicked -> {
@@ -104,89 +90,61 @@ class RegisterViewModel @Inject constructor(
         }
     }
 
-    private fun performRegister() {
-        // Validación local
-        val fullNameError = validateFullName(_uiState.value.fullName)
-        val emailError = validateEmail(_uiState.value.email)
-        val passwordError = validatePassword(_uiState.value.password)
-        val confirmPasswordError = validateConfirmPassword(
-            _uiState.value.password,
-            _uiState.value.confirmPassword
-        )
-        val termsError = validateTerms(_uiState.value.acceptedTerms)
+    private fun register() {
+        val fullNameError = if (_uiState.value.fullName.length < 2) {
+            "El nombre debe tener al menos 2 caracteres"
+        } else null
 
-        if (fullNameError != null || emailError != null ||
-            passwordError != null || confirmPasswordError != null ||
-            termsError != null) {
+        val emailError = if (!android.util.Patterns.EMAIL_ADDRESS.matcher(_uiState.value.email).matches()) {
+            "Email inválido"
+        } else null
+
+        val passwordError = if (_uiState.value.password.length < 8) {
+            "La contraseña debe tener al menos 8 caracteres"
+        } else null
+
+        val confirmPasswordError = if (_uiState.value.password != _uiState.value.confirmPassword) {
+            "Las contraseñas no coinciden"
+        } else null
+
+        val termsError = if (!_uiState.value.acceptedTerms) {
+            "Debes aceptar los términos y condiciones"
+        } else null
+
+        if (fullNameError != null || emailError != null || passwordError != null ||
+            confirmPasswordError != null || termsError != null) {
             _uiState.update { it.copy(
                 fullNameError = fullNameError,
                 emailError = emailError,
                 passwordError = passwordError,
                 confirmPasswordError = confirmPasswordError,
                 termsError = termsError
-            ) }
+            )}
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, registerError = null) }
 
-            // TODO: Llamar a AuthRepository.register()
-            kotlinx.coroutines.delay(1000)
+            val result = authRepository.register(
+                name = _uiState.value.fullName,
+                email = _uiState.value.email,
+                password = _uiState.value.password
+            )
 
-            // Simulación: siempre éxito
-            _uiState.update { it.copy(isLoading = false) }
-            _navigation.value = RegisterNavigation.ToHome
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    _navigation.value = RegisterNavigation.ToHome
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        registerError = error.message ?: "Error al registrar"
+                    )}
+                }
+            )
         }
-    }
-
-    private fun performSocialRegister(provider: AuthProvider) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            // TODO: Implementar OAuth flow
-            kotlinx.coroutines.delay(1000)
-
-            _uiState.update { it.copy(isLoading = false) }
-            _navigation.value = RegisterNavigation.ToHome
-        }
-    }
-
-    private fun validateFullName(fullName: String): String? {
-        return when {
-            fullName.isBlank() -> "El nombre es requerido"
-            fullName.length < 2 -> "El nombre debe tener al menos 2 caracteres"
-            else -> null
-        }
-    }
-
-    private fun validateEmail(email: String): String? {
-        return when {
-            email.isBlank() -> "El correo es requerido"
-            !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
-                "Correo electrónico inválido"
-            else -> null
-        }
-    }
-
-    private fun validatePassword(password: String): String? {
-        return when {
-            password.isBlank() -> "La contraseña es requerida"
-            password.length < 8 -> "Mínimo 8 caracteres"
-            else -> null
-        }
-    }
-
-    private fun validateConfirmPassword(password: String, confirmPassword: String): String? {
-        return when {
-            confirmPassword.isBlank() -> "Confirma tu contraseña"
-            password != confirmPassword -> "Las contraseñas no coinciden"
-            else -> null
-        }
-    }
-
-    private fun validateTerms(accepted: Boolean): String? {
-        return if (!accepted) "Debes aceptar los términos" else null
     }
 
     fun clearNavigation() {
