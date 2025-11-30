@@ -2,6 +2,9 @@ package com.pantrychef.front.pantry
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.repository.ProductRepository
+import com.pantrychef.back.model.Product
+import com.pantrychef.back.model.enums.Category
 import com.pantrychef.front.components.ProductAlertLevel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,7 +68,7 @@ sealed interface PantryNavigation {
 
 @HiltViewModel
 class PantryViewModel @Inject constructor(
-    // TODO: Inject ProductRepository
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PantryUiState())
@@ -82,17 +85,19 @@ class PantryViewModel @Inject constructor(
         when (event) {
             is PantryEvent.SearchQueryChanged -> {
                 _uiState.update { it.copy(searchQuery = event.query) }
-                filterProducts()
+                searchProducts(event.query)
             }
 
             is PantryEvent.CategorySelected -> {
                 _uiState.update { it.copy(selectedCategory = event.category) }
-                filterProducts()
+                loadProductsByCategory(event.category)
             }
 
             is PantryEvent.SortOptionChanged -> {
                 _uiState.update { it.copy(sortBy = event.sortOption) }
-                filterProducts()
+                // Re-filter con el nuevo sort
+                val currentProducts = _uiState.value.filteredProducts
+                _uiState.update { it.copy(filteredProducts = sortProducts(currentProducts)) }
             }
 
             is PantryEvent.ProductClicked -> {
@@ -113,171 +118,119 @@ class PantryViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            // TODO: Call repository
-            kotlinx.coroutines.delay(300)
-
-            val mockProducts = getMockProducts()
-            _uiState.update { it.copy(
-                products = mockProducts,
-                filteredProducts = mockProducts,
-                isLoading = false
-            )}
+            try {
+                productRepository.getAllProducts().collect { products ->
+                    val productCards = products.map { mapToProductCard(it) }
+                    val sorted = sortProducts(productCards)
+                    _uiState.update { it.copy(
+                        products = sorted,
+                        filteredProducts = sorted,
+                        isLoading = false
+                    )}
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al cargar productos"
+                )}
+            }
         }
     }
 
-    private fun filterProducts() {
-        val products = _uiState.value.products
-        val query = _uiState.value.searchQuery
-        val category = _uiState.value.selectedCategory
+    private fun loadProductsByCategory(category: ProductCategory) {
+        if (category == ProductCategory.ALL) {
+            loadProducts()
+            return
+        }
 
-        var filtered = products
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
 
-        // Filter by category
-        if (category != ProductCategory.ALL) {
-            filtered = filtered.filter { product ->
-                product.category.contains(category.name, ignoreCase = true) ||
-                        when (category) {
-                            ProductCategory.DAIRY -> product.category.contains("lácteo", ignoreCase = true)
-                            ProductCategory.PROTEINS -> product.category.contains("proteína", ignoreCase = true)
-                            ProductCategory.GRAINS -> product.category.contains("grano", ignoreCase = true)
-                            ProductCategory.VEGETABLES -> product.category.contains("verdura", ignoreCase = true)
-                            ProductCategory.FRUITS -> product.category.contains("fruta", ignoreCase = true)
-                            ProductCategory.CONDIMENTS -> product.category.contains("condimento", ignoreCase = true)
-                            else -> true
-                        }
+            try {
+                val categoryEnum = when (category) {
+                    ProductCategory.DAIRY -> Category.DAIRY
+                    ProductCategory.PROTEINS -> Category.PROTEINS
+                    ProductCategory.GRAINS -> Category.GRAINS
+                    ProductCategory.VEGETABLES -> Category.VEGETABLES
+                    ProductCategory.FRUITS -> Category.FRUITS
+                    ProductCategory.CONDIMENTS -> Category.CONDIMENTS
+                    ProductCategory.OTHERS -> Category.OTHERS
+                    ProductCategory.ALL -> null
+                }
+
+                if (categoryEnum != null) {
+                    productRepository.getProductsByCategory(categoryEnum).collect { products ->
+                        val productCards = products.map { mapToProductCard(it) }
+                        val sorted = sortProducts(productCards)
+                        _uiState.update { it.copy(
+                            filteredProducts = sorted,
+                            isLoading = false
+                        )}
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al filtrar productos"
+                )}
             }
         }
-
-        // Filter by search query
-        if (query.isNotBlank()) {
-            filtered = filtered.filter { product ->
-                product.name.contains(query, ignoreCase = true) ||
-                        product.category.contains(query, ignoreCase = true) ||
-                        product.location.contains(query, ignoreCase = true)
-            }
-        }
-
-        // Sort
-        filtered = when (_uiState.value.sortBy) {
-            SortOption.NAME -> filtered.sortedBy { it.name }
-            SortOption.CATEGORY -> filtered.sortedBy { it.category }
-            SortOption.QUANTITY -> filtered.sortedBy { it.quantity }
-            SortOption.EXPIRY_DATE -> filtered.sortedByDescending { it.alertLevel.ordinal }
-        }
-
-        _uiState.update { it.copy(filteredProducts = filtered) }
     }
 
-    private fun getMockProducts() = listOf(
-        ProductCardUiModel(
-            id = "1",
-            name = "Leche entera",
-            quantity = "2.0 L",
-            category = "Lácteos",
-            location = "Refrigerador",
+    private fun searchProducts(query: String) {
+        if (query.isBlank()) {
+            loadProducts()
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            try {
+                productRepository.searchProducts(query).collect { products ->
+                    val productCards = products.map { mapToProductCard(it) }
+                    val sorted = sortProducts(productCards)
+                    _uiState.update { it.copy(
+                        filteredProducts = sorted,
+                        isLoading = false
+                    )}
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al buscar productos"
+                )}
+            }
+        }
+    }
+
+    private fun sortProducts(products: List<ProductCardUiModel>): List<ProductCardUiModel> {
+        return when (_uiState.value.sortBy) {
+            SortOption.NAME -> products.sortedBy { it.name }
+            SortOption.CATEGORY -> products.sortedBy { it.category }
+            SortOption.QUANTITY -> products.sortedBy { it.quantity }
+            SortOption.EXPIRY_DATE -> products.sortedByDescending { it.alertLevel.ordinal }
+        }
+    }
+
+    private fun mapToProductCard(product: Product): ProductCardUiModel {
+        val alertLevel = when {
+            product.quantity == 0f -> ProductAlertLevel.EXPIRED
+            product.quantity < product.lowStockThreshold * 0.5f -> ProductAlertLevel.EXPIRING_SOON
+            product.quantity <= product.lowStockThreshold -> ProductAlertLevel.LOW_STOCK
+            else -> ProductAlertLevel.NONE
+        }
+
+        return ProductCardUiModel(
+            id = product.id,
+            name = product.name,
+            quantity = "${product.quantity} ${product.unit.name.lowercase()}",
+            category = product.category.name,
+            location = product.location ?: "Sin ubicación",
             imageUrl = null,
-            alertLevel = ProductAlertLevel.NONE
-        ),
-        ProductCardUiModel(
-            id = "2",
-            name = "Yogur natural",
-            quantity = "6 uds",
-            category = "Lácteos",
-            location = "Refrigerador",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.NONE
-        ),
-        ProductCardUiModel(
-            id = "3",
-            name = "Huevos",
-            quantity = "3 uds",
-            category = "Proteínas",
-            location = "Refrigerador",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.LOW_STOCK
-        ),
-        ProductCardUiModel(
-            id = "4",
-            name = "Pechuga de pollo",
-            quantity = "0.6 kg",
-            category = "Proteínas",
-            location = "Refrigerador",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.NONE
-        ),
-        ProductCardUiModel(
-            id = "5",
-            name = "Arroz",
-            quantity = "1.5 kg",
-            category = "Granos",
-            location = "Despensa",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.NONE
-        ),
-        ProductCardUiModel(
-            id = "6",
-            name = "Pasta",
-            quantity = "0.3 kg",
-            category = "Granos",
-            location = "Despensa",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.LOW_STOCK
-        ),
-        ProductCardUiModel(
-            id = "7",
-            name = "Tomates",
-            quantity = "4 uds",
-            category = "Verduras",
-            location = "Frutero",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.EXPIRING_SOON
-        ),
-        ProductCardUiModel(
-            id = "8",
-            name = "Cebollas",
-            quantity = "2 uds",
-            category = "Verduras",
-            location = "Despensa",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.NONE
-        ),
-        ProductCardUiModel(
-            id = "9",
-            name = "Manzanas",
-            quantity = "1.0 kg",
-            category = "Frutas",
-            location = "Frutero",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.NONE
-        ),
-        ProductCardUiModel(
-            id = "10",
-            name = "Plátanos",
-            quantity = "5 uds",
-            category = "Frutas",
-            location = "Frutero",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.NONE
-        ),
-        ProductCardUiModel(
-            id = "11",
-            name = "Aceite de oliva",
-            quantity = "0.4 L",
-            category = "Condimentos",
-            location = "Despensa",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.LOW_STOCK
-        ),
-        ProductCardUiModel(
-            id = "12",
-            name = "Sal fina",
-            quantity = "0.2 kg",
-            category = "Condimentos",
-            location = "Despensa",
-            imageUrl = null,
-            alertLevel = ProductAlertLevel.NONE
+            alertLevel = alertLevel
         )
-    )
+    }
 
     fun clearNavigation() {
         _navigation.value = null
