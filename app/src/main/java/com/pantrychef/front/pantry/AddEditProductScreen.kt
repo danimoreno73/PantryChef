@@ -37,6 +37,11 @@ fun AddEditProductScreen(
     LaunchedEffect(navigation) {
         when (navigation) {
             AddEditProductNavigation.Back -> {
+                // Notificar a la pantalla anterior que el producto fue actualizado
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("product_updated", true)
+
                 navController.popBackStack()
                 viewModel.clearNavigation()
             }

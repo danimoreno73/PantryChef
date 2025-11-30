@@ -3,12 +3,17 @@ package com.pantrychef.front.pantry
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.repository.ProductRepository
+import com.pantrychef.back.model.Product
+import com.pantrychef.back.model.enums.Category
+import com.pantrychef.back.model.enums.Unit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 data class AddEditProductUiState(
@@ -46,8 +51,8 @@ sealed interface AddEditProductNavigation {
 
 @HiltViewModel
 class AddEditProductViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle
-    // TODO: Inject ProductRepository
+    savedStateHandle: SavedStateHandle,
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
     private val productId: String? = savedStateHandle["productId"]
@@ -59,7 +64,7 @@ class AddEditProductViewModel @Inject constructor(
     val navigation: StateFlow<AddEditProductNavigation?> = _navigation.asStateFlow()
 
     init {
-        if (productId != null) {  // Solo carga si hay productId
+        if (productId != null) {
             loadProduct(productId)
         }
     }
@@ -112,21 +117,29 @@ class AddEditProductViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // TODO: Call repository
-            kotlinx.coroutines.delay(300)
+            val result = productRepository.getProductById(id)
 
-            // Mock data - cargar producto existente
-            _uiState.update { it.copy(
-                name = "Leche entera",
-                category = "Lácteos",
-                quantity = "2.0",
-                unit = "L",
-                location = "Refrigerador",
-                brand = "Pascual",
-                expiryDate = "2025-12-15",
-                lowStockThreshold = "1.0",
-                isLoading = false
-            )}
+            result.fold(
+                onSuccess = { product ->
+                    _uiState.update { it.copy(
+                        name = product.name,
+                        category = mapCategoryToSpanish(product.category),
+                        quantity = product.quantity.toString(),
+                        unit = mapUnitToSpanish(product.unit),
+                        location = product.location ?: "Refrigerador",
+                        brand = product.brand ?: "",
+                        expiryDate = null, // TODO: Add expiry date to model
+                        lowStockThreshold = product.lowStockThreshold.toString(),
+                        isLoading = false
+                    )}
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = error.message ?: "Error al cargar producto"
+                    )}
+                }
+            )
         }
     }
 
@@ -146,11 +159,36 @@ class AddEditProductViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // TODO: Call repository to save
-            kotlinx.coroutines.delay(500)
+            val product = Product(
+                id = productId ?: UUID.randomUUID().toString(),
+                name = _uiState.value.name,
+                category = mapSpanishToCategory(_uiState.value.category),
+                quantity = _uiState.value.quantity.toFloatOrNull() ?: 0f,
+                unit = mapSpanishToUnit(_uiState.value.unit),
+                lowStockThreshold = _uiState.value.lowStockThreshold.toFloatOrNull() ?: 0f,
+                location = _uiState.value.location.ifBlank { null },
+                brand = _uiState.value.brand.ifBlank { null },
+                updatedAt = System.currentTimeMillis()
+            )
 
-            _uiState.update { it.copy(isLoading = false) }
-            _navigation.value = AddEditProductNavigation.Back
+            val result = if (productId != null) {
+                productRepository.updateProduct(product)
+            } else {
+                productRepository.addProduct(product)
+            }
+
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    _navigation.value = AddEditProductNavigation.Back
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = error.message ?: "Error al guardar producto"
+                    )}
+                }
+            )
         }
     }
 
@@ -160,11 +198,68 @@ class AddEditProductViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // TODO: Call repository to delete
-            kotlinx.coroutines.delay(500)
+            val result = productRepository.deleteProduct(productId)
 
-            _uiState.update { it.copy(isLoading = false) }
-            _navigation.value = AddEditProductNavigation.Back
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    _navigation.value = AddEditProductNavigation.Back
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = error.message ?: "Error al eliminar producto"
+                    )}
+                }
+            )
+        }
+    }
+
+    private fun mapCategoryToSpanish(category: Category): String {
+        return when (category) {
+            Category.DAIRY -> "Lácteos"
+            Category.PROTEINS -> "Proteínas"
+            Category.GRAINS -> "Granos"
+            Category.VEGETABLES -> "Verduras"
+            Category.FRUITS -> "Frutas"
+            Category.CONDIMENTS -> "Condimentos"
+            Category.OTHERS -> "Otros"
+        }
+    }
+
+    private fun mapSpanishToCategory(spanish: String): Category {
+        return when (spanish) {
+            "Lácteos" -> Category.DAIRY
+            "Proteínas" -> Category.PROTEINS
+            "Granos" -> Category.GRAINS
+            "Verduras" -> Category.VEGETABLES
+            "Frutas" -> Category.FRUITS
+            "Condimentos" -> Category.CONDIMENTS
+            else -> Category.OTHERS
+        }
+    }
+
+    private fun mapUnitToSpanish(unit: Unit): String {
+        return when (unit) {
+            Unit.LITERS -> "L"
+            Unit.KILOGRAMS -> "kg"
+            Unit.GRAMS -> "g"
+            Unit.UNITS -> "uds"
+            Unit.PACKAGES -> "paquetes"
+            else -> unit.name.lowercase()
+        }
+    }
+
+    private fun mapSpanishToUnit(spanish: String): Unit {
+        return when (spanish) {
+            "L" -> Unit.LITERS
+            "kg" -> Unit.KILOGRAMS
+            "g" -> Unit.GRAMS
+            "uds" -> Unit.UNITS
+            "paquetes" -> Unit.PACKAGES
+            "latas" -> Unit.UNITS
+            "botellas" -> Unit.UNITS
+            else -> Unit.UNITS
         }
     }
 

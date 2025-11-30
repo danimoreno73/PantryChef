@@ -7,7 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,15 +35,31 @@ fun ProductDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navigation by viewModel.navigation.collectAsStateWithLifecycle()
 
+    // Recargar cuando vuelves a esta pantalla
+    val navBackStackEntry = navController.currentBackStackEntry
+    LaunchedEffect(navBackStackEntry) {
+        val savedStateHandle = navBackStackEntry?.savedStateHandle
+        savedStateHandle?.getStateFlow("product_updated", false)?.collect { updated ->
+            if (updated) {
+                viewModel.refresh()
+                savedStateHandle["product_updated"] = false
+            }
+        }
+    }
+
     // Handle navigation
     LaunchedEffect(navigation) {
         when (val nav = navigation) {
-            is ProductDetailNavigation.ToRecipe -> {
+            is ProductDetailNavigation.ToRecipeDetail -> {
                 navController.navigate(Routes.recipeDetail(nav.recipeId))
                 viewModel.clearNavigation()
             }
             ProductDetailNavigation.ToShoppingList -> {
                 navController.navigate(Routes.SHOPPING_LIST)
+                viewModel.clearNavigation()
+            }
+            ProductDetailNavigation.ToEdit -> {
+                navController.navigate(Routes.pantryEdit(productId))
                 viewModel.clearNavigation()
             }
             ProductDetailNavigation.Back -> {
@@ -85,10 +101,10 @@ private fun ProductDetailContent(
                 }
             },
             actions = {
-                IconButton(onClick = { onEvent(ProductDetailEvent.EditProduct) }) {
+                IconButton(onClick = { onEvent(ProductDetailEvent.EditClicked) }) {
                     Icon(
-                        imageVector = Icons.Filled.Tune,
-                        contentDescription = "Ajustes"
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = "Editar"
                     )
                 }
             }
@@ -250,31 +266,33 @@ private fun ProductDetailContent(
 
             QuickActionCard(
                 title = "Descartar restante",
-                subtitle = "Eliminar 0.5 L del inventario",
+                subtitle = "Eliminar del inventario",
                 actionLabel = "Eliminar",
                 onClick = { onEvent(ProductDetailEvent.DiscardRemaining) }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Usar antes de que venza
-            Text(
-                text = "Usar antes de que venza",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            uiState.recipeSuggestions.forEach { recipe ->
-                RecipeSuggestionCard(
-                    recipe = recipe,
-                    onClick = { onEvent(ProductDetailEvent.RecipeClicked(recipe.id)) }
+            // Usar antes de que venza (solo si hay recetas)
+            if (uiState.recipeSuggestions.isNotEmpty()) {
+                Text(
+                    text = "Usar antes de que venza",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                uiState.recipeSuggestions.forEach { recipe ->
+                    RecipeSuggestionCard(
+                        recipe = recipe,
+                        onClick = { onEvent(ProductDetailEvent.RecipeClicked(recipe.id)) }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
             // Detalles de despensa
             Text(
@@ -297,17 +315,19 @@ private fun ProductDetailContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 PrimaryButton(
-                    text = "Añadir 2 L a Lista",
+                    text = "Añadir a Lista",
                     onClick = { onEvent(ProductDetailEvent.AddToShoppingList) },
                     modifier = Modifier.weight(1f)
                 )
 
                 SecondaryButton(
                     text = "Actualizar cantidad",
-                    onClick = { /* TODO */ },
+                    onClick = { onEvent(ProductDetailEvent.UpdateQuantity) },
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -364,6 +384,12 @@ private fun RecipeSuggestionCard(
     recipe: RecipeSuggestion,
     onClick: () -> Unit
 ) {
+    val severity = if (recipe.status.contains("Cocinable", ignoreCase = true)) {
+        BadgeSeverity.SUCCESS
+    } else {
+        BadgeSeverity.WARNING
+    }
+
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -398,8 +424,8 @@ private fun RecipeSuggestionCard(
             }
 
             StatusBadge(
-                text = if (recipe.status == BadgeSeverity.SUCCESS) "Cocinable" else "Casi",
-                severity = recipe.status
+                text = recipe.status,
+                severity = severity
             )
         }
     }
@@ -436,8 +462,11 @@ private fun ProductDetailScreenPreview() {
         ProductDetailContent(
             uiState = ProductDetailUiState(
                 productName = "Leche",
-                currentQuantity = 0.5,
-                unit = "L"
+                currentQuantity = 0.5f,
+                unit = "L",
+                location = "Refrigerador",
+                brand = "Pascual",
+                lowStockThreshold = 1.0f
             ),
             onEvent = {},
             onBackClick = {}
