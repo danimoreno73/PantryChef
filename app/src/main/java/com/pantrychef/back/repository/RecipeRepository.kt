@@ -10,5 +10,4 @@ interface RecipeRepository {
     suspend fun updateRecipe(recipe: Recipe): Result<Unit>
     suspend fun deleteRecipe(id: String): Result<Unit>
     suspend fun getUserRecipes(userId: String): Flow<List<Recipe>>
-    suspend fun searchRecipes(query: String): Flow<List<Recipe>>
 }

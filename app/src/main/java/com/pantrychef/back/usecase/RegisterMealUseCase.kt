@@ -17,8 +17,8 @@ class RegisterMealUseCase(
         mealType: MealType,
         servings: Int,
         caloriesEstimate: Int? = null
-    ): Result<MealLog>{
-        return try{
+    ): Result<MealLog> {
+        return try {
             val mealLog = MealLog(
                 id = "meal-${UUID.randomUUID()}",
                 recipeId = recipeId,
@@ -28,11 +28,13 @@ class RegisterMealUseCase(
                 servings = servings,
                 caloriesEstimate = caloriesEstimate
             )
+
             mealLogRepository.logMeal(mealLog).getOrThrow()
-            // decrementIngredientsStockUseCase(recipeId, servings).getOrThrow()
-            // descomentar cuando se implemente decrementIngredientsStockUseCase
+
+            decrementIngredientsStockUseCase(recipeId, servings).getOrThrow()
+
             Result.success(mealLog)
-        }catch (e: Exception){
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }
