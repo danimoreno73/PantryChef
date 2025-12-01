@@ -2,6 +2,10 @@ package com.pantrychef.front.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.model.Product
+import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
+import com.pantrychef.back.usecase.GetLowStockProductsUseCase
+import com.pantrychef.front.components.BadgeSeverity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +19,7 @@ data class AlertItem(
     val productName: String,
     val message: String,
     val categoryInfo: String,
-    val severity: com.pantrychef.front.components.BadgeSeverity,
+    val severity: BadgeSeverity,
     val actionLabel: String
 )
 
@@ -26,7 +30,7 @@ data class RecipeItem(
     val servings: String,
     val imageUrl: String?,
     val badge: String?,
-    val badgeSeverity: com.pantrychef.front.components.BadgeSeverity
+    val badgeSeverity: BadgeSeverity
 )
 
 data class ShoppingPreviewItem(
@@ -37,7 +41,7 @@ data class ShoppingPreviewItem(
 )
 
 data class HomeUiState(
-    val userName: String = "",
+    val userName: String = "Usuario",
     val cookableCount: Int = 0,
     val almostCookableCount: Int = 0,
     val alerts: List<AlertItem> = emptyList(),
@@ -71,7 +75,8 @@ sealed interface HomeNavigation {
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    // TODO: Inject repositories and use cases
+    private val getLowStockProductsUseCase: GetLowStockProductsUseCase,
+    private val getAlmostCookableRecipesUseCase: GetAlmostCookableRecipesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -81,16 +86,17 @@ class HomeViewModel @Inject constructor(
     val navigation: StateFlow<HomeNavigation?> = _navigation.asStateFlow()
 
     init {
-        loadDashboardData()
+        loadHomeData()
     }
 
     fun onEvent(event: HomeEvent) {
         when (event) {
-            HomeEvent.Refresh -> loadDashboardData()
+            HomeEvent.Refresh -> {
+                loadHomeData()
+            }
 
             is HomeEvent.AlertClicked -> {
-                // TODO: Get productId from alert
-                _navigation.value = HomeNavigation.ToProductDetail("product-123")
+                _navigation.value = HomeNavigation.ToProductDetail(event.alertId)
             }
 
             is HomeEvent.RecipeClicked -> {
@@ -102,11 +108,11 @@ class HomeViewModel @Inject constructor(
             }
 
             HomeEvent.ScanClicked -> {
-                // TODO: Implement scanner
+                // TODO: Implement scan functionality
             }
 
             HomeEvent.ViewAllAlertsClicked -> {
-                // TODO: Navigate to alerts screen
+                _navigation.value = HomeNavigation.ToPantry
             }
 
             HomeEvent.ViewAllRecipesClicked -> {
@@ -123,111 +129,119 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun loadDashboardData() {
+    private fun loadHomeData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            // TODO: Call real use cases
-            // Simulación con datos mock
-            kotlinx.coroutines.delay(500)
+            try {
+                // Cargar productos con bajo stock
+                launch {
+                    getLowStockProductsUseCase().collect { lowStockProducts ->
+                        updateWithLowStockProducts(lowStockProducts)
+                    }
+                }
 
-            _uiState.update { it.copy(
-                userName = "Usuario",
-                cookableCount = 12,
-                almostCookableCount = 7,
-                alerts = getMockAlerts(),
-                cookableRecipes = getMockCookableRecipes(),
-                almostCookableRecipes = getMockAlmostCookableRecipes(),
-                shoppingPreview = getMockShoppingPreview(),
-                isLoading = false
-            )}
+                // Cargar recetas casi cocinables
+                launch {
+                    getAlmostCookableRecipesUseCase().collect { almostCookableRecipes ->
+                        updateWithAlmostCookableRecipes(almostCookableRecipes)
+                    }
+                }
+
+                _uiState.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al cargar datos"
+                )}
+            }
         }
     }
 
-    // Mock data
-    private fun getMockAlerts() = listOf(
-        AlertItem(
-            id = "1",
-            productName = "Leche",
-            message = "Baja en 2 días",
-            categoryInfo = "Lácteos",
-            severity = com.pantrychef.front.components.BadgeSeverity.WARNING,
-            actionLabel = "Reponer"
-        ),
-        AlertItem(
-            id = "2",
-            productName = "Huevos",
-            message = "Quedan 3",
-            categoryInfo = "Proteínas",
-            severity = com.pantrychef.front.components.BadgeSeverity.LOW,
-            actionLabel = "Bajo"
-        ),
-        AlertItem(
-            id = "3",
-            productName = "Espinaca",
-            message = "Vence en 1 día",
-            categoryInfo = "Verduras",
-            severity = com.pantrychef.front.components.BadgeSeverity.URGENT,
-            actionLabel = "Urgente"
-        )
-    )
+    private fun updateWithLowStockProducts(products: List<Product>) {
+        // Generar alertas de productos con bajo stock
+        val alerts = products.map { product ->
+            AlertItem(
+                id = product.id,
+                productName = product.name,
+                message = when {
+                    product.quantity == 0f -> "Sin stock"
+                    product.quantity < product.lowStockThreshold * 0.5f -> "Stock crítico"
+                    else -> "Stock bajo"
+                },
+                categoryInfo = "${product.category.name} • ${product.location ?: "Sin ubicación"}",
+                severity = when {
+                    product.quantity == 0f -> BadgeSeverity.URGENT
+                    product.quantity < product.lowStockThreshold * 0.5f -> BadgeSeverity.WARNING
+                    else -> BadgeSeverity.INFO
+                },
+                actionLabel = "Reponer"
+            )
+        }.take(3) // Solo mostrar las primeras 3 alertas
 
-    private fun getMockCookableRecipes() = listOf(
-        RecipeItem(
-            id = "1",
-            title = "Pasta con verduras",
-            prepTime = "25 min",
-            servings = "2 porciones",
-            imageUrl = null,
-            badge = "Todo listo",
-            badgeSeverity = com.pantrychef.front.components.BadgeSeverity.SUCCESS
-        ),
-        RecipeItem(
-            id = "2",
-            title = "Curry de garbanzos",
-            prepTime = "30 min",
-            servings = "3 porciones",
-            imageUrl = null,
-            badge = null,
-            badgeSeverity = com.pantrychef.front.components.BadgeSeverity.SUCCESS
-        )
-    )
+        val shoppingPreview = products.map { product ->
+            val quantityNeeded = (product.lowStockThreshold - product.quantity).coerceAtLeast(0f)
+            ShoppingPreviewItem(
+                id = product.id,
+                name = product.name,
+                quantity = formatQuantity(quantityNeeded, product.unit.name.lowercase()),
+                source = "Sugerido"
+            )
+        }.take(2)
 
-    private fun getMockAlmostCookableRecipes() = listOf(
-        RecipeItem(
-            id = "3",
-            title = "Tacos de pollo",
-            prepTime = "30 min",
-            servings = "3 porciones",
-            imageUrl = null,
-            badge = "2/4",
-            badgeSeverity = com.pantrychef.front.components.BadgeSeverity.WARNING
-        ),
-        RecipeItem(
-            id = "4",
-            title = "Risotto de setas",
-            prepTime = "35 min",
-            servings = "2 porciones",
-            imageUrl = null,
-            badge = "5/6",
-            badgeSeverity = com.pantrychef.front.components.BadgeSeverity.WARNING
-        )
-    )
+        _uiState.update { it.copy(
+            alerts = alerts,
+            shoppingPreview = shoppingPreview
+        )}
+    }
 
-    private fun getMockShoppingPreview() = listOf(
-        ShoppingPreviewItem(
-            id = "1",
-            name = "Tortillas",
-            quantity = "12 uds",
-            source = "Para Tacos de pollo"
-        ),
-        ShoppingPreviewItem(
-            id = "2",
-            name = "Leche",
-            quantity = "2 L",
-            source = "Bajo stock"
-        )
-    )
+    private fun updateWithAlmostCookableRecipes(almostCookable: List<GetAlmostCookableRecipesUseCase.AlmostCookableRecipe>) {
+        // Separar recetas en cocinables (100%) y casi cocinables (80-99%)
+        val fullyAvailable = almostCookable.filter { it.availableRatio >= 1.0f }
+        val almostAvailable = almostCookable.filter { it.availableRatio < 1.0f }
+
+        val cookableRecipes = fullyAvailable.map { almostCookableRecipe ->
+            val recipe = almostCookableRecipe.recipe
+            RecipeItem(
+                id = recipe.id,
+                title = recipe.name,
+                prepTime = "${recipe.prepTimeMinutes} min",
+                servings = "${recipe.servings} porciones",
+                imageUrl = recipe.imageUrl,
+                badge = "Todo listo",
+                badgeSeverity = BadgeSeverity.SUCCESS
+            )
+        }.take(2)
+
+        val almostCookableRecipes = almostAvailable.map { almostCookableRecipe ->
+            val recipe = almostCookableRecipe.recipe
+            val missingCount = almostCookableRecipe.missingIngredients.size
+            val totalCount = recipe.ingredients.size
+
+            RecipeItem(
+                id = recipe.id,
+                title = recipe.name,
+                prepTime = "${recipe.prepTimeMinutes} min",
+                servings = "${recipe.servings} porciones",
+                imageUrl = recipe.imageUrl,
+                badge = "${totalCount - missingCount}/$totalCount",
+                badgeSeverity = BadgeSeverity.WARNING
+            )
+        }.take(2)
+
+        _uiState.update { it.copy(
+            cookableCount = fullyAvailable.size,
+            almostCookableCount = almostAvailable.size,
+            cookableRecipes = cookableRecipes,
+            almostCookableRecipes = almostCookableRecipes
+        )}
+    }
+    private fun formatQuantity(quantity: Float, unit: String): String {
+        return when {
+            quantity == quantity.toInt().toFloat() -> "${quantity.toInt()} $unit"
+            else -> "${"%.1f".format(quantity)} $unit"
+        }
+    }
 
     fun clearNavigation() {
         _navigation.value = null
