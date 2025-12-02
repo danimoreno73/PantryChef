@@ -3,6 +3,7 @@ package com.pantrychef.back.di
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.RecipeRepository
 import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
+import com.pantrychef.back.usecase.GetCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetLowStockProductsUseCase
 import dagger.Module
 import dagger.Provides
@@ -20,6 +21,15 @@ object UseCaseModule {
         productRepository: ProductRepository
     ): GetLowStockProductsUseCase {
         return GetLowStockProductsUseCase(productRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetCookableRecipesUseCase(
+        recipeRepository: RecipeRepository,
+        productRepository: ProductRepository
+    ): GetCookableRecipesUseCase {
+        return GetCookableRecipesUseCase(recipeRepository, productRepository)
     }
 
     @Provides

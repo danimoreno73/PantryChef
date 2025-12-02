@@ -3,7 +3,9 @@ package com.pantrychef.front.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pantrychef.back.model.Product
+import com.pantrychef.back.model.Recipe
 import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
+import com.pantrychef.back.usecase.GetCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetLowStockProductsUseCase
 import com.pantrychef.front.components.BadgeSeverity
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -76,6 +78,7 @@ sealed interface HomeNavigation {
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val getLowStockProductsUseCase: GetLowStockProductsUseCase,
+    private val getCookableRecipesUseCase: GetCookableRecipesUseCase,
     private val getAlmostCookableRecipesUseCase: GetAlmostCookableRecipesUseCase
 ) : ViewModel() {
 
@@ -141,7 +144,14 @@ class HomeViewModel @Inject constructor(
                     }
                 }
 
-                // Cargar recetas casi cocinables
+                // Cargar recetas 100% cocinables
+                launch {
+                    getCookableRecipesUseCase().collect { cookableRecipes ->
+                        updateWithCookableRecipes(cookableRecipes)
+                    }
+                }
+
+                // Cargar recetas casi cocinables (80-99%)
                 launch {
                     getAlmostCookableRecipesUseCase().collect { almostCookableRecipes ->
                         updateWithAlmostCookableRecipes(almostCookableRecipes)
@@ -177,7 +187,7 @@ class HomeViewModel @Inject constructor(
                 },
                 actionLabel = "Reponer"
             )
-        }.take(3) // Solo mostrar las primeras 3 alertas
+        }.take(3)
 
         val shoppingPreview = products.map { product ->
             val quantityNeeded = (product.lowStockThreshold - product.quantity).coerceAtLeast(0f)
@@ -195,13 +205,8 @@ class HomeViewModel @Inject constructor(
         )}
     }
 
-    private fun updateWithAlmostCookableRecipes(almostCookable: List<GetAlmostCookableRecipesUseCase.AlmostCookableRecipe>) {
-        // Separar recetas en cocinables (100%) y casi cocinables (80-99%)
-        val fullyAvailable = almostCookable.filter { it.availableRatio >= 1.0f }
-        val almostAvailable = almostCookable.filter { it.availableRatio < 1.0f }
-
-        val cookableRecipes = fullyAvailable.map { almostCookableRecipe ->
-            val recipe = almostCookableRecipe.recipe
+    private fun updateWithCookableRecipes(recipes: List<Recipe>) {
+        val cookableRecipes = recipes.map { recipe ->
             RecipeItem(
                 id = recipe.id,
                 title = recipe.name,
@@ -213,7 +218,14 @@ class HomeViewModel @Inject constructor(
             )
         }.take(2)
 
-        val almostCookableRecipes = almostAvailable.map { almostCookableRecipe ->
+        _uiState.update { it.copy(
+            cookableCount = recipes.size,
+            cookableRecipes = cookableRecipes
+        )}
+    }
+
+    private fun updateWithAlmostCookableRecipes(almostCookableList: List<GetAlmostCookableRecipesUseCase.AlmostCookableRecipe>) {
+        val almostCookableRecipes = almostCookableList.map { almostCookableRecipe ->
             val recipe = almostCookableRecipe.recipe
             val missingCount = almostCookableRecipe.missingIngredients.size
             val totalCount = recipe.ingredients.size
@@ -230,14 +242,14 @@ class HomeViewModel @Inject constructor(
         }.take(2)
 
         _uiState.update { it.copy(
-            cookableCount = fullyAvailable.size,
-            almostCookableCount = almostAvailable.size,
-            cookableRecipes = cookableRecipes,
+            almostCookableCount = almostCookableList.size,
             almostCookableRecipes = almostCookableRecipes
         )}
     }
+
     private fun formatQuantity(quantity: Float, unit: String): String {
         return when {
+            quantity == 0f -> "0 $unit"
             quantity == quantity.toInt().toFloat() -> "${quantity.toInt()} $unit"
             else -> "${"%.1f".format(quantity)} $unit"
         }
