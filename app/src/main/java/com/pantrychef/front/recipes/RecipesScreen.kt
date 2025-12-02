@@ -145,9 +145,7 @@ private fun RecipesContent(
         val recipes = when (uiState.activeTab) {
             RecipeTab.COOKABLE -> uiState.cookableNow
             RecipeTab.ALMOST -> uiState.almostCookable
-            RecipeTab.UNDER_30MIN -> uiState.cookableNow.filter {
-                it.prepTime.contains("25") || it.prepTime.contains("30")
-            }
+            RecipeTab.UNDER_30MIN -> uiState.under30Min
             RecipeTab.YOUR_RECIPES -> uiState.yourRecipes
         }
 
