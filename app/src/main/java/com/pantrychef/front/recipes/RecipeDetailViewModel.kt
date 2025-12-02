@@ -3,21 +3,29 @@ package com.pantrychef.front.recipes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.repository.ProductRepository
+import com.pantrychef.back.repository.RecipeRepository
 import com.pantrychef.front.components.BadgeSeverity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+enum class AvailabilityStatus {
+    FULL,
+    PARTIAL
+}
 
 data class IngredientItemUiModel(
     val id: String,
     val name: String,
     val quantity: String,
     val isAvailable: Boolean,
-    val isChecked: Boolean = false
+    val isChecked: Boolean
 )
 
 data class RecipeStepUiModel(
@@ -30,42 +38,37 @@ data class RecipeDetailUiState(
     val recipeTitle: String = "",
     val imageUrl: String? = null,
     val prepTime: Int = 0,
-    val servings: Int = 2,
+    val servings: Int = 0,
     val difficulty: String = "",
-    val availabilityStatus: AvailabilityStatus = AvailabilityStatus.FULL,
     val ingredients: List<IngredientItemUiModel> = emptyList(),
     val steps: List<RecipeStepUiModel> = emptyList(),
+    val availabilityStatus: AvailabilityStatus = AvailabilityStatus.PARTIAL,
     val missingIngredients: List<String> = emptyList(),
     val isFavorite: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
-enum class AvailabilityStatus {
-    FULL,
-    PARTIAL
-}
-
 sealed interface RecipeDetailEvent {
-    data class IngredientChecked(val ingredientId: String, val checked: Boolean) : RecipeDetailEvent
-    data class ServingsChanged(val servings: Int) : RecipeDetailEvent
+    object ToggleFavorite : RecipeDetailEvent
+    data class IngredientChecked(val ingredientId: String, val isChecked: Boolean) : RecipeDetailEvent
     object CookNowClicked : RecipeDetailEvent
+    object RegisterMeal : RecipeDetailEvent
     object AddMissingToShoppingList : RecipeDetailEvent
     object SubstituteIngredients : RecipeDetailEvent
-    object ToggleFavorite : RecipeDetailEvent
-    object RegisterMeal : RecipeDetailEvent
 }
 
 sealed interface RecipeDetailNavigation {
-    object ToShoppingList : RecipeDetailNavigation
     object ToMealLog : RecipeDetailNavigation
+    object ToShoppingList : RecipeDetailNavigation
     object Back : RecipeDetailNavigation
 }
 
 @HiltViewModel
 class RecipeDetailViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle
-    // TODO: Inject RecipeRepository
+    savedStateHandle: SavedStateHandle,
+    private val recipeRepository: RecipeRepository,
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
     private val recipeId: String = checkNotNull(savedStateHandle["recipeId"])
@@ -82,10 +85,14 @@ class RecipeDetailViewModel @Inject constructor(
 
     fun onEvent(event: RecipeDetailEvent) {
         when (event) {
+            RecipeDetailEvent.ToggleFavorite -> {
+                _uiState.update { it.copy(isFavorite = !it.isFavorite) }
+            }
+
             is RecipeDetailEvent.IngredientChecked -> {
                 val updatedIngredients = _uiState.value.ingredients.map { ingredient ->
                     if (ingredient.id == event.ingredientId) {
-                        ingredient.copy(isChecked = event.checked)
+                        ingredient.copy(isChecked = event.isChecked)
                     } else {
                         ingredient
                     }
@@ -93,33 +100,20 @@ class RecipeDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(ingredients = updatedIngredients) }
             }
 
-            is RecipeDetailEvent.ServingsChanged -> {
-                _uiState.update { it.copy(servings = event.servings) }
-                // TODO: Recalcular cantidades de ingredientes
+            RecipeDetailEvent.CookNowClicked -> {
+                _navigation.value = RecipeDetailNavigation.ToMealLog
             }
 
-            RecipeDetailEvent.CookNowClicked -> {
-                // TODO: Implement cook logic - reduce pantry stock
+            RecipeDetailEvent.RegisterMeal -> {
                 _navigation.value = RecipeDetailNavigation.ToMealLog
             }
 
             RecipeDetailEvent.AddMissingToShoppingList -> {
-                // TODO: Add missing ingredients to shopping list
                 _navigation.value = RecipeDetailNavigation.ToShoppingList
             }
 
             RecipeDetailEvent.SubstituteIngredients -> {
-                // TODO: Show substitute suggestions
-            }
-
-            RecipeDetailEvent.ToggleFavorite -> {
-                _uiState.update { it.copy(isFavorite = !it.isFavorite) }
-                // TODO: Persist to repository
-            }
-
-            RecipeDetailEvent.RegisterMeal -> {
-                // TODO: Register meal in log
-                _navigation.value = RecipeDetailNavigation.ToMealLog
+                // TODO: Implement substitute ingredients
             }
         }
     }
@@ -128,125 +122,87 @@ class RecipeDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            // TODO: Call repository
-            kotlinx.coroutines.delay(300)
+            try {
+                // Cargar receta
+                val recipeResult = recipeRepository.getRecipeById(recipeId)
 
-            // Mock data - Simula receta según ID
-            val isFullyAvailable = recipeId == "1" || recipeId == "2"
+                recipeResult.fold(
+                    onSuccess = { recipe ->
+                        // Cargar productos para verificar disponibilidad
+                        val products = productRepository.getAllProducts().first()
 
-            _uiState.update { it.copy(
-                recipeTitle = if (isFullyAvailable) "Pasta con verduras" else "Tacos de pollo",
-                imageUrl = if (isFullyAvailable)
-                    "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600"
-                else
-                    "https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=600",
-                prepTime = if (isFullyAvailable) 25 else 30,
-                servings = if (isFullyAvailable) 2 else 3,
-                difficulty = if (isFullyAvailable) "Fácil" else "Media",
-                availabilityStatus = if (isFullyAvailable)
-                    AvailabilityStatus.FULL
-                else
-                    AvailabilityStatus.PARTIAL,
-                ingredients = if (isFullyAvailable) getMockIngredientsFullyAvailable() else getMockIngredientsPartial(),
-                steps = if (isFullyAvailable) getMockStepsPasta() else getMockStepsTacos(),
-                missingIngredients = if (isFullyAvailable) emptyList() else listOf("Tortillas", "Lima"),
-                isFavorite = false,
-                isLoading = false
-            )}
+                        // Mapear ingredientes con disponibilidad
+                        val ingredientItems = recipe.ingredients.mapIndexed { index, ingredient ->
+                            val product = products.find {
+                                it.name.equals(ingredient.productName, ignoreCase = true)
+                            }
+
+                            val isAvailable = product != null && product.quantity >= ingredient.quantity
+
+                            IngredientItemUiModel(
+                                id = ingredient.id,
+                                name = ingredient.productName,
+                                quantity = "${ingredient.quantity} ${ingredient.unit.name.lowercase()}",
+                                isAvailable = isAvailable,
+                                isChecked = false
+                            )
+                        }
+
+                        // Calcular ingredientes faltantes
+                        val missingIngredients = ingredientItems
+                            .filter { !it.isAvailable }
+                            .map { it.name }
+
+                        // Determinar disponibilidad
+                        val availabilityStatus = if (missingIngredients.isEmpty()) {
+                            AvailabilityStatus.FULL
+                        } else {
+                            AvailabilityStatus.PARTIAL
+                        }
+
+                        // Mapear pasos
+                        val steps = recipe.steps.mapIndexed { index, instruction ->
+                            RecipeStepUiModel(
+                                number = index + 1,
+                                instruction = instruction,
+                                duration = null // TODO: Extraer duración del texto si está
+                            )
+                        }
+
+                        _uiState.update { it.copy(
+                            recipeTitle = recipe.name,
+                            imageUrl = recipe.imageUrl,
+                            prepTime = recipe.prepTimeMinutes,
+                            servings = recipe.servings,
+                            difficulty = when (recipe.difficulty.name) {
+                                "EASY" -> "Fácil"
+                                "MEDIUM" -> "Media"
+                                "HARD" -> "Difícil"
+                                else -> recipe.difficulty.name
+                            },
+                            ingredients = ingredientItems,
+                            steps = steps,
+                            availabilityStatus = availabilityStatus,
+                            missingIngredients = missingIngredients,
+                            isFavorite = false, // TODO: Cargar de preferencias
+                            isLoading = false
+                        )}
+                    },
+                    onFailure = { error ->
+                        _uiState.update { it.copy(
+                            isLoading = false,
+                            error = error.message ?: "Error al cargar receta"
+                        )}
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al cargar receta"
+                )}
+            }
         }
     }
-
-    private fun getMockIngredientsFullyAvailable() = listOf(
-        IngredientItemUiModel(
-            id = "1",
-            name = "Pasta corta",
-            quantity = "180 g",
-            isAvailable = true
-        ),
-        IngredientItemUiModel(
-            id = "2",
-            name = "Calabacín",
-            quantity = "1 mediano",
-            isAvailable = true
-        ),
-        IngredientItemUiModel(
-            id = "3",
-            name = "Pimiento",
-            quantity = "1 pequeño",
-            isAvailable = true
-        ),
-        IngredientItemUiModel(
-            id = "4",
-            name = "Aceite de oliva",
-            quantity = "1 cda",
-            isAvailable = true
-        )
-    )
-
-    private fun getMockIngredientsPartial() = listOf(
-        IngredientItemUiModel(
-            id = "1",
-            name = "Pollo desmenuzado",
-            quantity = "300 g",
-            isAvailable = true
-        ),
-        IngredientItemUiModel(
-            id = "2",
-            name = "Cebolla",
-            quantity = "1 mediana",
-            isAvailable = true
-        ),
-        IngredientItemUiModel(
-            id = "3",
-            name = "Tortillas",
-            quantity = "12 uds",
-            isAvailable = false
-        ),
-        IngredientItemUiModel(
-            id = "4",
-            name = "Lima",
-            quantity = "1 unidad",
-            isAvailable = false
-        )
-    )
-
-    private fun getMockStepsPasta() = listOf(
-        RecipeStepUiModel(
-            number = 1,
-            instruction = "Hervir la pasta en agua con sal hasta al dente. Reserva 1/4 taza del agua.",
-            duration = 10
-        ),
-        RecipeStepUiModel(
-            number = 2,
-            instruction = "Saltear verduras (calabacín y pimiento) en aceite de oliva 4-5 min, sal y pimienta.",
-            duration = 5
-        ),
-        RecipeStepUiModel(
-            number = 3,
-            instruction = "Mezclar pasta escurrida con verduras. Ajustar condimentos."
-        ),
-        RecipeStepUiModel(
-            number = 4,
-            instruction = "Servir y terminar con aceite de oliva o queso si tienes."
-        )
-    )
-
-    private fun getMockStepsTacos() = listOf(
-        RecipeStepUiModel(
-            number = 1,
-            instruction = "Preparar relleno: saltear cebolla y agregar pollo; condimentar al gusto.",
-            duration = 15
-        ),
-        RecipeStepUiModel(
-            number = 2,
-            instruction = "Calentar tortillas en plancha o sartén 30-60 s por lado.",
-            duration = 5
-        ),
-        RecipeStepUiModel(
-            number = 3,
-            instruction = "Montar tacos: rellenar con pollo; terminar con jugo de lima."
-        )
-    )
 
     fun clearNavigation() {
         _navigation.value = null
