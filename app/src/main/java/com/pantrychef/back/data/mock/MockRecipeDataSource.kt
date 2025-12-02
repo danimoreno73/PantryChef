@@ -39,7 +39,7 @@ class MockRecipeDataSource(private val context: Context) {
             Recipe(
                 id = "2",
                 name = "Arroz a la Cubana",
-                imageUrl = null,
+                imageUrl = "https://media.istockphoto.com/id/1320894256/es/foto/arroz-al-estilo-cubano-fondo-blanco-enfoque-selectivo.webp?a=1&b=1&s=612x612&w=0&k=20&c=zaxqBDgcyash4yjxksQCXBtJZZMqex2m6BZ54M7vR5Q=",
                 prepTimeMinutes = 20,
                 servings = 1,
                 difficulty = Difficulty.EASY,

@@ -2,6 +2,9 @@ package com.pantrychef.front.recipes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.repository.RecipeRepository
+import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
+import com.pantrychef.back.usecase.GetCookableRecipesUseCase
 import com.pantrychef.front.components.BadgeSeverity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,25 +21,26 @@ data class RecipeCardData(
     val servings: String,
     val imageUrl: String?,
     val badge: String?,
-    val badgeSeverity: BadgeSeverity
+    val badgeSeverity: BadgeSeverity?
 )
+
+enum class RecipeTab {
+    COOKABLE,
+    ALMOST,
+    UNDER_30MIN,
+    YOUR_RECIPES
+}
 
 data class RecipesUiState(
     val cookableNow: List<RecipeCardData> = emptyList(),
     val almostCookable: List<RecipeCardData> = emptyList(),
+    val under30Min: List<RecipeCardData> = emptyList(),
     val yourRecipes: List<RecipeCardData> = emptyList(),
     val searchQuery: String = "",
     val activeTab: RecipeTab = RecipeTab.COOKABLE,
     val isLoading: Boolean = false,
     val error: String? = null
 )
-
-enum class RecipeTab {
-    COOKABLE,      // Cocinables
-    ALMOST,        // Casi
-    UNDER_30MIN,   // < 30 min (filtro adicional)
-    YOUR_RECIPES   // Tus recetas
-}
 
 sealed interface RecipesEvent {
     data class SearchQueryChanged(val query: String) : RecipesEvent
@@ -53,7 +57,9 @@ sealed interface RecipesNavigation {
 
 @HiltViewModel
 class RecipesViewModel @Inject constructor(
-    // TODO: Inject RecipeRepository, GetCookableRecipesUseCase
+    private val recipeRepository: RecipeRepository,
+    private val getCookableRecipesUseCase: GetCookableRecipesUseCase,
+    private val getAlmostCookableRecipesUseCase: GetAlmostCookableRecipesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecipesUiState())
@@ -61,6 +67,12 @@ class RecipesViewModel @Inject constructor(
 
     private val _navigation = MutableStateFlow<RecipesNavigation?>(null)
     val navigation: StateFlow<RecipesNavigation?> = _navigation.asStateFlow()
+
+    // Guardar listas originales para búsqueda local
+    private var originalCookable: List<RecipeCardData> = emptyList()
+    private var originalAlmost: List<RecipeCardData> = emptyList()
+    private var originalUnder30: List<RecipeCardData> = emptyList()
+    private var originalYourRecipes: List<RecipeCardData> = emptyList()
 
     init {
         loadRecipes()
@@ -70,7 +82,7 @@ class RecipesViewModel @Inject constructor(
         when (event) {
             is RecipesEvent.SearchQueryChanged -> {
                 _uiState.update { it.copy(searchQuery = event.query) }
-                // TODO: Filtrar recetas
+                applySearch(event.query)
             }
 
             is RecipesEvent.TabChanged -> {
@@ -95,81 +107,133 @@ class RecipesViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            // TODO: Call real repositories
-            kotlinx.coroutines.delay(300)
+            try {
+                // Cargar recetas 100% cocinables
+                launch {
+                    getCookableRecipesUseCase().collect { cookableRecipes ->
+                        val cookableCards = cookableRecipes.map { recipe ->
+                            RecipeCardData(
+                                id = recipe.id,
+                                title = recipe.name,
+                                prepTime = "${recipe.prepTimeMinutes} min",
+                                servings = "${recipe.servings} porciones",
+                                imageUrl = recipe.imageUrl,
+                                badge = "Todo listo",
+                                badgeSeverity = BadgeSeverity.SUCCESS
+                            )
+                        }
 
-            _uiState.update { it.copy(
-                cookableNow = getMockCookableRecipes(),
-                almostCookable = getMockAlmostCookableRecipes(),
-                yourRecipes = getMockYourRecipes(),
-                isLoading = false
-            )}
+                        originalCookable = cookableCards
+                        _uiState.update { it.copy(cookableNow = cookableCards) }
+                    }
+                }
+
+                // Cargar recetas casi cocinables (80-99%)
+                launch {
+                    getAlmostCookableRecipesUseCase().collect { almostCookableRecipes ->
+                        val almostCards = almostCookableRecipes.map { almostCookableRecipe ->
+                            val recipe = almostCookableRecipe.recipe
+                            val missingCount = almostCookableRecipe.missingIngredients.size
+                            val totalCount = recipe.ingredients.size
+
+                            RecipeCardData(
+                                id = recipe.id,
+                                title = recipe.name,
+                                prepTime = "${recipe.prepTimeMinutes} min",
+                                servings = "${recipe.servings} porciones",
+                                imageUrl = recipe.imageUrl,
+                                badge = "${totalCount - missingCount}/$totalCount",
+                                badgeSeverity = BadgeSeverity.WARNING
+                            )
+                        }
+
+                        originalAlmost = almostCards
+                        _uiState.update { it.copy(almostCookable = almostCards) }
+                    }
+                }
+
+                // Cargar todas las recetas para filtros adicionales
+                launch {
+                    recipeRepository.getAllRecipes().collect { allRecipes ->
+                        val under30 = allRecipes.filter { it.prepTimeMinutes <= 30 }
+                        val under30Cards = under30.map { recipe ->
+                            RecipeCardData(
+                                id = recipe.id,
+                                title = recipe.name,
+                                prepTime = "${recipe.prepTimeMinutes} min",
+                                servings = "${recipe.servings} porciones",
+                                imageUrl = recipe.imageUrl,
+                                badge = "Rápida",
+                                badgeSeverity = BadgeSeverity.INFO
+                            )
+                        }
+
+                        // TODO: Filtrar "Tus recetas" por userId cuando tengamos auth
+                        val yourRecipesCards = allRecipes.filter { !it.isPublic }.map { recipe ->
+                            RecipeCardData(
+                                id = recipe.id,
+                                title = recipe.name,
+                                prepTime = "${recipe.prepTimeMinutes} min",
+                                servings = "${recipe.servings} porciones",
+                                imageUrl = recipe.imageUrl,
+                                badge = null,
+                                badgeSeverity = null
+                            )
+                        }
+
+                        originalUnder30 = under30Cards
+                        originalYourRecipes = yourRecipesCards
+
+                        _uiState.update { it.copy(
+                            under30Min = under30Cards,
+                            yourRecipes = yourRecipesCards
+                        )}
+                    }
+                }
+
+                _uiState.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al cargar recetas"
+                )}
+            }
         }
     }
 
-    // Mock data
-    private fun getMockCookableRecipes() = listOf(
-        RecipeCardData(
-            id = "1",
-            title = "Pasta con verduras",
-            prepTime = "25 min",
-            servings = "2 porciones",
-            imageUrl = "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=300",
-            badge = "Todo listo",
-            badgeSeverity = BadgeSeverity.SUCCESS
-        ),
-        RecipeCardData(
-            id = "2",
-            title = "Curry de garbanzos",
-            prepTime = "30 min",
-            servings = "3 porciones",
-            imageUrl = "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=300",
-            badge = "Todo listo",
-            badgeSeverity = BadgeSeverity.SUCCESS
-        )
-    )
+    private fun applySearch(query: String) {
+        if (query.isBlank()) {
+            // Restaurar listas originales
+            _uiState.update { it.copy(
+                cookableNow = originalCookable,
+                almostCookable = originalAlmost,
+                under30Min = originalUnder30,
+                yourRecipes = originalYourRecipes
+            )}
+            return
+        }
 
-    private fun getMockAlmostCookableRecipes() = listOf(
-        RecipeCardData(
-            id = "3",
-            title = "Hamburguesa endentro colesterol",
-            prepTime = "30 min",
-            servings = "3 porciones",
-            imageUrl = "https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=300",
-            badge = "2/4",
-            badgeSeverity = BadgeSeverity.WARNING
-        ),
-        RecipeCardData(
-            id = "4",
-            title = "Risotto de setas",
-            prepTime = "35 min",
-            servings = "2 porciones",
-            imageUrl = "https://plus.unsplash.com/premium_photo-1694850980302-f568e6de0f6d?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            badge = "5/6",
-            badgeSeverity = BadgeSeverity.WARNING
-        )
-    )
+        // Filtrar en memoria
+        val filteredCookable = originalCookable.filter {
+            it.title.contains(query, ignoreCase = true)
+        }
+        val filteredAlmost = originalAlmost.filter {
+            it.title.contains(query, ignoreCase = true)
+        }
+        val filteredUnder30 = originalUnder30.filter {
+            it.title.contains(query, ignoreCase = true)
+        }
+        val filteredYourRecipes = originalYourRecipes.filter {
+            it.title.contains(query, ignoreCase = true)
+        }
 
-    private fun getMockYourRecipes() = listOf(
-        RecipeCardData(
-            id = "5",
-            title = "Pizza casera",
-            prepTime = "45 min",
-            servings = "4 porciones",
-            imageUrl = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=300",
-            badge = "Guardada",
-            badgeSeverity = BadgeSeverity.INFO
-        ),
-        RecipeCardData(
-            id = "6",
-            title = "Sopa de lentejas",
-            prepTime = "45 min",
-            servings = "3 porciones",
-            imageUrl = "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=300",
-            badge = "Guardada",
-            badgeSeverity = BadgeSeverity.INFO
-        )
-    )
+        _uiState.update { it.copy(
+            cookableNow = filteredCookable,
+            almostCookable = filteredAlmost,
+            under30Min = filteredUnder30,
+            yourRecipes = filteredYourRecipes
+        )}
+    }
 
     fun clearNavigation() {
         _navigation.value = null

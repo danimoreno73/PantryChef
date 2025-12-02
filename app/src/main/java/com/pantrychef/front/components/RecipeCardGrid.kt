@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pantrychef.front.theme.PantryChefTheme
+import com.pantrychef.front.theme.PrimaryGreenLight
 import com.pantrychef.front.theme.TextSecondary
 
 @Composable
@@ -26,73 +28,99 @@ fun RecipeCardGrid(
     servings: String,
     imageUrl: String?,
     badge: String?,
-    badgeSeverity: BadgeSeverity = BadgeSeverity.SUCCESS,
+    badgeSeverity: BadgeSeverity?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.large,
+        modifier = modifier.fillMaxWidth()
     ) {
-        // Image section
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(4f / 3f)
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            if (imageUrl != null) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Text(
-                    text = "🍽️",
-                    style = MaterialTheme.typography.displayMedium,
-                    modifier = Modifier.align(Alignment.Center)
-                )
+            // Image section con aspect ratio
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(4f / 3f)
+            ) {
+                // Image o placeholder
+                if (imageUrl != null) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Placeholder con emoji
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(PrimaryGreenLight),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🍳",
+                            style = MaterialTheme.typography.displayLarge
+                        )
+                    }
+                }
+
+                // Badge en top-right corner
+                if (badge != null && badgeSeverity != null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                    ) {
+                        StatusBadge(
+                            text = badge,
+                            severity = badgeSeverity
+                        )
+                    }
+                }
             }
 
-            // Badge in top-right corner
-            if (badge != null) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
+            // Content section (FUERA del Box de la imagen)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    StatusBadge(
-                        text = badge,
-                        severity = badgeSeverity
+                    Text(
+                        text = "⏱ $prepTime",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = " • ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = "👥 $servings",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
                     )
                 }
             }
-        }
-
-        // Content section
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "$prepTime • $servings",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
-            )
         }
     }
 }
