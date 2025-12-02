@@ -60,7 +60,7 @@ class MockProductDataSource(private val context: Context) {
                 id = "4",
                 name = "Pechuga de pollo",
                 category = Category.PROTEINS,
-                quantity = 0.6f,
+                quantity = 300.6f,
                 unit = Unit.KILOGRAMS,
                 lowStockThreshold = 0.5f,
                 location = "Refrigerador",
@@ -91,7 +91,7 @@ class MockProductDataSource(private val context: Context) {
             ),
             Product(
                 id = "7",
-                name = "Pasta",
+                name = "Pasta corta",
                 category = Category.GRAINS,
                 quantity = 0.3f, // Casi sin stock
                 unit = Unit.KILOGRAMS,
@@ -104,7 +104,7 @@ class MockProductDataSource(private val context: Context) {
                 id = "8",
                 name = "Pan de molde",
                 category = Category.GRAINS,
-                quantity = 1.0f,
+                quantity = 15.0f,
                 unit = Unit.PACKAGES,
                 lowStockThreshold = 1.0f,
                 location = "Despensa",
@@ -113,7 +113,7 @@ class MockProductDataSource(private val context: Context) {
             ),
             Product(
                 id = "9",
-                name = "Tomates",
+                name = "Lima",
                 category = Category.VEGETABLES,
                 quantity = 4.0f,
                 unit = Unit.UNITS,
@@ -124,7 +124,7 @@ class MockProductDataSource(private val context: Context) {
             ),
             Product(
                 id = "10",
-                name = "Cebollas",
+                name = "Cebolla",
                 category = Category.VEGETABLES,
                 quantity = 2.0f,
                 unit = Unit.UNITS,

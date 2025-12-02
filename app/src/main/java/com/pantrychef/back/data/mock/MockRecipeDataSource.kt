@@ -77,7 +77,7 @@ class MockRecipeDataSource(private val context: Context) {
                     Ingredient(
                         id = "i5",
                         recipeId = "2",
-                        productName = "Pollo desmenuzado",
+                        productName = "Pechuga de pollo",
                         quantity = 300f,
                         unit = Unit.GRAMS,
                         isOptional = false
@@ -93,7 +93,7 @@ class MockRecipeDataSource(private val context: Context) {
                     Ingredient(
                         id = "i7",
                         recipeId = "2",
-                        productName = "Tortillas", // FALTA - para probar casi cocinables
+                        productName = "Pan de molde", // FALTA - para probar casi cocinables
                         quantity = 12f,
                         unit = Unit.UNITS,
                         isOptional = false
