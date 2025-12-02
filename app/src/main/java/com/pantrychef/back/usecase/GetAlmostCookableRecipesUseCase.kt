@@ -50,7 +50,7 @@ class GetAlmostCookableRecipesUseCase(
 
             // CORRECCIÓN 1: Permitimos ratio >= 0.7 (para aceptar 3 de 4 ingredientes)
             // CORRECCIÓN 2: Quitamos "missing.isNotEmpty()" para incluir las recetas completas (100%)
-            if (ratio >= 0.7f) {
+            if (ratio in 0.7f..<1.0f) {
                 AlmostCookableRecipe(
                     recipe = recipe,
                     missingIngredients = missing.map { it.productName },

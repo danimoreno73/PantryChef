@@ -8,244 +8,44 @@ import com.pantrychef.back.model.enums.Unit
 class MockProductDataSource(private val context: Context) {
 
     fun loadMockProducts(): List<Product> {
-        /*
-        val jsonString = context.assets.open("./seed/products.json")
-            .bufferedReader()
-            .use { it.readText() }
-        */
-        // Parsear JSON manualmente o con Gson/Moshi
-        return parseProductsFromJson("jsonString")
-    }
-
-    private fun parseProductsFromJson(json: String): List<Product> {
-        // TODO: Implementar parseo real o usar librería (Moshi, Kotlinx Serialization, etc.)
-        // Por ahora: lista hardcoded para mocks
         val now = System.currentTimeMillis()
 
         return listOf(
-            Product(
-                id = "1",
-                name = "Leche entera",
-                category = Category.DAIRY,
-                quantity = 2.0f,
-                unit = Unit.LITERS,
-                lowStockThreshold = 1.0f,
-                location = "Refrigerador",
-                brand = "Pascual",
-                updatedAt = now
-            ),
-            Product(
-                id = "2",
-                name = "Yogur natural",
-                category = Category.DAIRY,
-                quantity = 6.0f,
-                unit = Unit.UNITS,
-                lowStockThreshold = 4.0f,
-                location = "Refrigerador",
-                brand = "Danone",
-                updatedAt = now
-            ),
-            Product(
-                id = "3",
-                name = "Huevos",
-                category = Category.PROTEINS,
-                quantity = 3.0f, // Bajo stock
-                unit = Unit.UNITS,
-                lowStockThreshold = 6.0f,
-                location = "Refrigerador",
-                brand = null,
-                updatedAt = now
-            ),
-            Product(
-                id = "4",
-                name = "Pechuga de pollo",
-                category = Category.PROTEINS,
-                quantity = 300.6f,
-                unit = Unit.KILOGRAMS,
-                lowStockThreshold = 0.5f,
-                location = "Refrigerador",
-                brand = null,
-                updatedAt = now
-            ),
-            Product(
-                id = "5",
-                name = "Lentejas",
-                category = Category.PROTEINS,
-                quantity = 0.8f,
-                unit = Unit.KILOGRAMS,
-                lowStockThreshold = 0.5f,
-                location = "Despensa",
-                brand = "Legumbre",
-                updatedAt = now
-            ),
-            Product(
-                id = "6",
-                name = "Arroz",
-                category = Category.GRAINS,
-                quantity = 1.5f,
-                unit = Unit.KILOGRAMS,
-                lowStockThreshold = 1.0f,
-                location = "Despensa",
-                brand = "SOS",
-                updatedAt = now
-            ),
-            Product(
-                id = "7",
-                name = "Pasta corta",
-                category = Category.GRAINS,
-                quantity = 0.3f, // Casi sin stock
-                unit = Unit.KILOGRAMS,
-                lowStockThreshold = 0.5f,
-                location = "Despensa",
-                brand = "Barilla",
-                updatedAt = now
-            ),
-            Product(
-                id = "8",
-                name = "Pan de molde",
-                category = Category.GRAINS,
-                quantity = 15.0f,
-                unit = Unit.PACKAGES,
-                lowStockThreshold = 1.0f,
-                location = "Despensa",
-                brand = "Bimbo",
-                updatedAt = now
-            ),
-            Product(
-                id = "9",
-                name = "Lima",
-                category = Category.VEGETABLES,
-                quantity = 4.0f,
-                unit = Unit.UNITS,
-                lowStockThreshold = 3.0f,
-                location = "Frutero",
-                brand = null,
-                updatedAt = now
-            ),
-            Product(
-                id = "10",
-                name = "Cebolla",
-                category = Category.VEGETABLES,
-                quantity = 2.0f,
-                unit = Unit.UNITS,
-                lowStockThreshold = 2.0f,
-                location = "Despensa",
-                brand = null,
-                updatedAt = now
-            ),
-            Product(
-                id = "11",
-                name = "Manzanas",
-                category = Category.FRUITS,
-                quantity = 1.0f,
-                unit = Unit.KILOGRAMS,
-                lowStockThreshold = 0.5f,
-                location = "Frutero",
-                brand = null,
-                updatedAt = now
-            ),
-            Product(
-                id = "12",
-                name = "Plátanos",
-                category = Category.FRUITS,
-                quantity = 5.0f,
-                unit = Unit.UNITS,
-                lowStockThreshold = 3.0f,
-                location = "Frutero",
-                brand = null,
-                updatedAt = now
-            ),
-            Product(
-                id = "13",
-                name = "Aceite de oliva virgen extra",
-                category = Category.CONDIMENTS,
-                quantity = 0.4f, // Bajo stock
-                unit = Unit.LITERS,
-                lowStockThreshold = 0.5f,
-                location = "Despensa",
-                brand = "Carbonell",
-                updatedAt = now
-            ),
-            Product(
-                id = "14",
-                name = "Sal fina",
-                category = Category.CONDIMENTS,
-                quantity = 0.2f,
-                unit = Unit.KILOGRAMS,
-                lowStockThreshold = 0.1f,
-                location = "Despensa",
-                brand = null,
-                updatedAt = now
-            ),
-            Product(
-                id = "15",
-                name = "Pimienta negra molida",
-                category = Category.CONDIMENTS,
-                quantity = 1.0f,
-                unit = Unit.UNITS,
-                lowStockThreshold = 1.0f,
-                location = "Especiero",
-                brand = null,
-                updatedAt = now
-            ),
-            Product(
-                id = "16",
-                name = "Ketchup",
-                category = Category.CONDIMENTS,
-                quantity = 0.3f,
-                unit = Unit.LITERS,
-                lowStockThreshold = 0.2f,
-                location = "Refrigerador",
-                brand = "Heinz",
-                updatedAt = now
-            ),
-            Product(
-                id = "17",
-                name = "Galletas",
-                category = Category.OTHERS,
-                quantity = 2.0f,
-                unit = Unit.PACKAGES,
-                lowStockThreshold = 1.0f,
-                location = "Despensa",
-                brand = "María",
-                updatedAt = now
-            ),
-            Product(
-                id = "18",
-                name = "Café molido",
-                category = Category.OTHERS,
-                quantity = 0.25f,
-                unit = Unit.KILOGRAMS,
-                lowStockThreshold = 0.2f,
-                location = "Despensa",
-                brand = "Marcilla",
-                updatedAt = now
-            ),
-            Product(
-                id = "19",
-                name = "Chocolate negro",
-                category = Category.OTHERS,
-                quantity = 3.0f,
-                unit = Unit.UNITS,
-                lowStockThreshold = 1.0f,
-                location = "Despensa",
-                brand = "Lindt",
-                updatedAt = now
-            ),
-            Product(
-                id = "20",
-                name = "Letus",
-                category = Category.OTHERS,
-                quantity = 0.8f,
-                unit = Unit.LITERS,
-                lowStockThreshold = 0.5f,
-                location = "Despensa",
-                brand = "Calvo",
-                updatedAt = now
-            )
+            // --- INGREDIENTES PARA LA ENSALADA (COOKABLE) ---
+            Product("1", "Tomate", Category.VEGETABLES, 6f, Unit.UNITS, 2f, "Nevera", null, now),
+            Product("2", "Mozzarella fresca", Category.DAIRY, 2f, Unit.UNITS, 1f, "Nevera", "Galbani", now),
+            Product("3", "Albahaca", Category.VEGETABLES, 50f, Unit.GRAMS, 10f, "Nevera", null, now),
+            Product("4", "Aceite de oliva", Category.CONDIMENTS, 50f, Unit.TABLESPOONS, 0.2f, "Despensa", "Carbonell", now), // Usaremos este para todo
+
+            // --- INGREDIENTES PARA EL ARROZ A LA CUBANA (COOKABLE) ---
+            // Nota: Aquí pruebo la conversión. Tengo 1KG, la receta pide 100g. Debería funcionar.
+            Product("5", "Arroz redondo", Category.GRAINS, 1f, Unit.KILOGRAMS, 0.5f, "Despensa", "SOS", now),
+            Product("6", "Huevos", Category.PROTEINS, 12f, Unit.UNITS, 4f, "Nevera", "L", now),
+            Product("7", "Tomate Frito", Category.CONDIMENTS, 300f, Unit.GRAMS, 100f, "Despensa", "Orlando", now),
+            Product("8", "Plátano", Category.FRUITS, 5f, Unit.UNITS, 2f, "Frutero", "Canarias", now),
+
+            // --- INGREDIENTES PARA BURGER (ALMOST - Falta Lechuga) ---
+            Product("9", "Pan de Burger", Category.GRAINS, 4f, Unit.UNITS, 2f, "Despensa", "Bimbo", now),
+            Product("10", "Carne Picada", Category.PROTEINS, 500f, Unit.GRAMS, 200f, "Nevera", "Carnicería", now),
+            Product("11", "Queso Cheddar", Category.DAIRY, 10f, Unit.UNITS, 2f, "Nevera", "Hochland", now),
+            // NO TENEMOS LECHUGA
+
+            // --- INGREDIENTES PARA BATIDO (ALMOST - Falta Hielo) ---
+            Product("12", "Leche entera", Category.DAIRY, 6f, Unit.LITERS, 2f, "Despensa", "Pascual", now),
+            // Plátano ya lo tenemos (id 8)
+            Product("13", "Fresas", Category.FRUITS, 20f, Unit.UNITS, 5f, "Nevera", null, now),
+            Product("14", "Proteína en polvo", Category.OTHERS, 1f, Unit.KILOGRAMS, 0.2f, "Gimnasio", "Whey", now),
+            // NO TENEMOS HIELO
+
+            // --- INGREDIENTES PARA SUSHI (NADA - Tenemos solo arroz y vinagre) ---
+            Product("15", "Arroz Sushi", Category.GRAINS, 1f, Unit.KILOGRAMS, 0.5f, "Despensa", null, now),
+            Product("16", "Vinagre de arroz", Category.CONDIMENTS, 250f, Unit.MILLILITERS, 50f, "Despensa", null, now),
+            // NO TENEMOS NORI
+            // NO TENEMOS SALMÓN
+
+            // --- INGREDIENTES PAELLA ---
+            // Arroz redondo ya tenemos (id 5)
+            // NO TENEMOS CALDO, NI GAMBAS, NI MEJILLONES
         )
     }
-
 }
-
-
