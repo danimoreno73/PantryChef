@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.RecipeRepository
+import com.pantrychef.back.utils.UnitsConverter
 import com.pantrychef.front.components.BadgeSeverity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -132,12 +133,18 @@ class RecipeDetailViewModel @Inject constructor(
                         val products = productRepository.getAllProducts().first()
 
                         // Mapear ingredientes con disponibilidad
-                        val ingredientItems = recipe.ingredients.mapIndexed { index, ingredient ->
+                        val ingredientItems = recipe.ingredients.map { ingredient ->
                             val product = products.find {
-                                it.name.equals(ingredient.productName, ignoreCase = true)
+                                it.name.trim().equals(ingredient.productName.trim(), ignoreCase = true)
                             }
 
-                            val isAvailable = product != null && product.quantity >= ingredient.quantity
+                            // Usar UnitsConverter para verificar disponibilidad con conversión de unidades
+                            val isAvailable = product != null && UnitsConverter.hasSufficientQuantity(
+                                productQuantity = product.quantity,
+                                productUnit = product.unit,
+                                requiredQuantity = ingredient.quantity,
+                                requiredUnit = ingredient.unit
+                            )
 
                             IngredientItemUiModel(
                                 id = ingredient.id,
