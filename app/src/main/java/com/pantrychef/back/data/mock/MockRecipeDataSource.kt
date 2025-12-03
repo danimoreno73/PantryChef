@@ -20,7 +20,7 @@ class MockRecipeDataSource(private val context: Context) {
             Recipe(
                 id = "1",
                 name = "Ensalada Caprese",
-                imageUrl = "https://example.com/caprese.jpg",
+                imageUrl = "https://unsplash.com/es/fotos/rodajas-de-tomate-y-verdura-de-hoja-verde-en-plato-de-ceramica-blanca-vIm26fn_QKg",
                 prepTimeMinutes = 10,
                 servings = 2,
                 difficulty = Difficulty.EASY,
@@ -62,7 +62,7 @@ class MockRecipeDataSource(private val context: Context) {
             Recipe(
                 id = "3",
                 name = "Burger Clásica",
-                imageUrl = null,
+                imageUrl = "https://unsplash.com/es/fotos/hamburguesa-con-lechuga-y-tomates-sc5sTPMrVfk",
                 prepTimeMinutes = 15,
                 servings = 1,
                 difficulty = Difficulty.MEDIUM,
@@ -81,7 +81,7 @@ class MockRecipeDataSource(private val context: Context) {
             Recipe(
                 id = "4",
                 name = "Batido Post-Entreno",
-                imageUrl = null,
+                imageUrl = "https://unsplash.com/es/fotos/una-mano-sosteniendo-una-licuadora-con-un-batido-verde-H7W2Y9k7n2Y",
                 prepTimeMinutes = 5,
                 servings = 1,
                 difficulty = Difficulty.EASY,
@@ -105,7 +105,7 @@ class MockRecipeDataSource(private val context: Context) {
             Recipe(
                 id = "5",
                 name = "Maki Sushi",
-                imageUrl = null,
+                imageUrl = "https://unsplash.com/es/fotos/sushi-en-plato-de-ceramica-blanca-Jz4QMhLvGgw",
                 prepTimeMinutes = 60,
                 servings = 2,
                 difficulty = Difficulty.HARD,
@@ -124,7 +124,7 @@ class MockRecipeDataSource(private val context: Context) {
             Recipe(
                 id = "6",
                 name = "Paella de Marisco",
-                imageUrl = null,
+                imageUrl = "https://unsplash.com/es/fotos/sarten-negra-en-la-estufa-4B0cLMtJxWw",
                 prepTimeMinutes = 45,
                 servings = 4,
                 difficulty = Difficulty.HARD,
