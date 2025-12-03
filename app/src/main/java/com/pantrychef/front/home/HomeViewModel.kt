@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.pantrychef.back.usecase.BuildSuggestedShoppingListUseCase
 
 data class AlertItem(
     val id: String,
@@ -79,7 +80,8 @@ sealed interface HomeNavigation {
 class HomeViewModel @Inject constructor(
     private val getLowStockProductsUseCase: GetLowStockProductsUseCase,
     private val getCookableRecipesUseCase: GetCookableRecipesUseCase,
-    private val getAlmostCookableRecipesUseCase: GetAlmostCookableRecipesUseCase
+    private val getAlmostCookableRecipesUseCase: GetAlmostCookableRecipesUseCase,
+    private val buildSuggestedShoppingListUseCase: BuildSuggestedShoppingListUseCase  // <- AÑADIR
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -123,7 +125,7 @@ class HomeViewModel @Inject constructor(
             }
 
             HomeEvent.GoToShoppingListClicked -> {
-                _navigation.value = HomeNavigation.ToShoppingList
+                generateShoppingListAndNavigate()
             }
 
             HomeEvent.SettingsClicked -> {
@@ -257,5 +259,28 @@ class HomeViewModel @Inject constructor(
 
     fun clearNavigation() {
         _navigation.value = null
+    }
+
+    private fun generateShoppingListAndNavigate() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            val result = buildSuggestedShoppingListUseCase()
+
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    _navigation.value = HomeNavigation.ToShoppingList
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = error.message ?: "Error al generar lista"
+                    )}
+                    // Navegar de todas formas aunque falle
+                    _navigation.value = HomeNavigation.ToShoppingList
+                }
+            )
+        }
     }
 }

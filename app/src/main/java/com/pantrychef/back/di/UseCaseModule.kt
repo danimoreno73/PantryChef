@@ -2,6 +2,8 @@ package com.pantrychef.back.di
 
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.RecipeRepository
+import com.pantrychef.back.repository.ShoppingListRepository
+import com.pantrychef.back.usecase.BuildSuggestedShoppingListUseCase
 import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetLowStockProductsUseCase
@@ -39,5 +41,21 @@ object UseCaseModule {
         productRepository: ProductRepository
     ): GetAlmostCookableRecipesUseCase {
         return GetAlmostCookableRecipesUseCase(recipeRepository, productRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideBuildSuggestedShoppingListUseCase(
+        productRepository: ProductRepository,
+        recipeRepository: RecipeRepository,
+        shoppingListRepository: ShoppingListRepository,
+        getAlmostCookableRecipesUseCase: GetAlmostCookableRecipesUseCase
+    ): BuildSuggestedShoppingListUseCase {
+        return BuildSuggestedShoppingListUseCase(
+            productRepository,
+            recipeRepository,
+            shoppingListRepository,
+            getAlmostCookableRecipesUseCase
+        )
     }
 }

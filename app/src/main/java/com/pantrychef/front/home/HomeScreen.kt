@@ -335,30 +335,6 @@ private fun HomeContent(
                 )
             }
         }
-
-        // Botones finales
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                SecondaryButton(
-                    text = "Ir a Lista",
-                    onClick = { onEvent(HomeEvent.GoToShoppingListClicked) },
-                    modifier = Modifier.weight(1f)
-                )
-
-                PrimaryButton(
-                    text = "Añadir todo",
-                    onClick = { /* TODO: Añadir todos a lista */ },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
     }
 }
 
