@@ -1,12 +1,23 @@
 package com.pantrychef.back.di
 
+import com.pantrychef.back.repository.AlertRepository
+import com.pantrychef.back.repository.MealLogRepository
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.RecipeRepository
 import com.pantrychef.back.repository.ShoppingListRepository
+import com.pantrychef.back.usecase.AddProductUseCase
+import com.pantrychef.back.usecase.AddRecipeUseCase
 import com.pantrychef.back.usecase.BuildSuggestedShoppingListUseCase
+import com.pantrychef.back.usecase.ComputeLowStockAlertsUseCase
+import com.pantrychef.back.usecase.DecrementIngredientsStockUseCase
+import com.pantrychef.back.usecase.DeleteProductUseCase
+import com.pantrychef.back.usecase.GetAllProductsUseCase
 import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetLowStockProductsUseCase
+import com.pantrychef.back.usecase.RegisterMealUseCase
+import com.pantrychef.back.usecase.UpdateProductQuantityUseCase
+import com.pantrychef.back.usecase.UpdateRecipeUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -57,5 +68,94 @@ object UseCaseModule {
             shoppingListRepository,
             getAlmostCookableRecipesUseCase
         )
+    }
+
+    @Provides
+    @Singleton
+    fun provideAddProductUseCase(
+        productRepository: ProductRepository
+    ): AddProductUseCase{
+        return AddProductUseCase(
+            productRepository
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideAddRecipeUseCase(
+        recipeRepository: RecipeRepository
+    ): AddRecipeUseCase{
+        return AddRecipeUseCase(
+            recipeRepository
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideComputeLowStockAlertsUseCase(
+        productRepository: ProductRepository,
+        alertRepository: AlertRepository
+    ): ComputeLowStockAlertsUseCase{
+        return ComputeLowStockAlertsUseCase(
+            productRepository,
+            alertRepository
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideDecrementingIngredientsStockUseCase(
+        recipeRepository: RecipeRepository,
+        productRepository: ProductRepository,
+        alertRepository: AlertRepository
+    ): DecrementIngredientsStockUseCase{
+        return DecrementIngredientsStockUseCase(
+            recipeRepository,
+            productRepository,
+            alertRepository
+        )
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideDeleteProductUseCase(
+        productRepository: ProductRepository
+    ): DeleteProductUseCase{
+        return DeleteProductUseCase(productRepository)
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideGetAllProductsUseCase(
+        productRepository: ProductRepository
+    ): GetAllProductsUseCase{
+        return GetAllProductsUseCase(productRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRegisterMealUseCase(
+        mealLogRepository: MealLogRepository,
+        decrementIngredientsStockUseCase: DecrementIngredientsStockUseCase
+    ): RegisterMealUseCase{
+        return RegisterMealUseCase(mealLogRepository, decrementIngredientsStockUseCase)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUpdateProductQuantityUseCase(
+        productRepository: ProductRepository
+    ): UpdateProductQuantityUseCase{
+        return UpdateProductQuantityUseCase(productRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUpdateRecipeUseCase(
+        recipeRepository: RecipeRepository
+    ): UpdateRecipeUseCase{
+        return UpdateRecipeUseCase(recipeRepository)
     }
 }
