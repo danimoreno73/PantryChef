@@ -6,7 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.RecipeRepository
 import com.pantrychef.back.utils.UnitsConverter
-import com.pantrychef.front.components.BadgeSeverity
+import com.pantrychef.back.usecase.RegisterMealUseCase
+import com.pantrychef.back.model.enums.MealType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,7 +70,8 @@ sealed interface RecipeDetailNavigation {
 class RecipeDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val recipeRepository: RecipeRepository,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val registerMealUseCase: RegisterMealUseCase
 ) : ViewModel() {
 
     private val recipeId: String = checkNotNull(savedStateHandle["recipeId"])
@@ -102,11 +104,11 @@ class RecipeDetailViewModel @Inject constructor(
             }
 
             RecipeDetailEvent.CookNowClicked -> {
-                _navigation.value = RecipeDetailNavigation.ToMealLog
+                cookRecipeNow()
             }
 
             RecipeDetailEvent.RegisterMeal -> {
-                _navigation.value = RecipeDetailNavigation.ToMealLog
+                cookRecipeNow()
             }
 
             RecipeDetailEvent.AddMissingToShoppingList -> {
@@ -208,6 +210,39 @@ class RecipeDetailViewModel @Inject constructor(
                     error = e.message ?: "Error al cargar receta"
                 )}
             }
+        }
+    }
+
+    private fun cookRecipeNow() {
+        val recipeId = recipeId
+        val recipeName = _uiState.value.recipeTitle
+        val servings = _uiState.value.servings
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            // Registrar comida como LUNCH por defecto
+            // TODO: Mostrar dialog para elegir tipo de comida y porciones
+            val result = registerMealUseCase(
+                recipeId = recipeId,
+                recipeName = recipeName,
+                mealType = MealType.LUNCH,
+                servings = servings,
+                caloriesEstimate = null
+            )
+
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    _navigation.value = RecipeDetailNavigation.ToMealLog
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = error.message ?: "Error al registrar comida"
+                    )}
+                }
+            )
         }
     }
 

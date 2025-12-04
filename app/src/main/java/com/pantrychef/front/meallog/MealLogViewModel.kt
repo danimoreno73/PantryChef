@@ -6,7 +6,7 @@ import com.pantrychef.back.model.MealLog
 import com.pantrychef.back.model.enums.MealType
 import com.pantrychef.back.repository.MealLogRepository
 import com.pantrychef.back.repository.RecipeRepository
-import com.pantrychef.back.usecase.DecrementIngredientsStockUseCase
+import com.pantrychef.back.usecase.RegisterMealUseCase
 import com.pantrychef.front.components.MealStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,7 +63,7 @@ sealed interface MealLogNavigation {
 class MealLogViewModel @Inject constructor(
     private val mealLogRepository: MealLogRepository,
     private val recipeRepository: RecipeRepository,
-    private val decrementIngredientsStockUseCase: DecrementIngredientsStockUseCase
+    private val registerMealUseCase: RegisterMealUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MealLogUiState())
@@ -202,6 +202,38 @@ class MealLogViewModel @Inject constructor(
         }
 
         return startDate to endDate
+    }
+
+    fun logMealFromRecipe(
+        recipeId: String,
+        recipeName: String,
+        mealType: MealType,
+        servings: Int
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            val result = registerMealUseCase(
+                recipeId = recipeId,
+                recipeName = recipeName,
+                mealType = mealType,
+                servings = servings,
+                caloriesEstimate = null
+            )
+
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    // El Flow de loadMealLogs() se actualizará automáticamente
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = error.message ?: "Error al registrar comida"
+                    )}
+                }
+            )
+        }
     }
 
     fun clearNavigation() {
