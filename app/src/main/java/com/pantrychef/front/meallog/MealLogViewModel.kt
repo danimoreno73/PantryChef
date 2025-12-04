@@ -2,6 +2,11 @@ package com.pantrychef.front.meallog
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.model.MealLog
+import com.pantrychef.back.model.enums.MealType
+import com.pantrychef.back.repository.MealLogRepository
+import com.pantrychef.back.repository.RecipeRepository
+import com.pantrychef.back.usecase.DecrementIngredientsStockUseCase
 import com.pantrychef.front.components.MealStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,42 +14,44 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
-
-data class MealLogItemUiModel(
-    val id: String,
-    val mealName: String,
-    val mealType: String,
-    val time: String,
-    val calories: Int,
-    val imageUrl: String?,
-    val status: MealStatus,
-    val date: String // Para agrupación
-)
 
 enum class ViewMode {
     WEEK,
     MONTH
 }
 
+data class MealUiModel(
+    val id: String,
+    val mealName: String,
+    val mealType: String,
+    val time: String,
+    val calories: Int,
+    val imageUrl: String?,
+    val status: MealStatus
+)
+
 data class MealLogUiState(
+    val mealsByDate: Map<String, List<MealUiModel>> = emptyMap(),
+    val searchQuery: String = "",
+    val viewMode: ViewMode = ViewMode.WEEK,
     val weeklyMealsCount: Int = 0,
     val homemadeMealsCount: Int = 0,
-    val mealsByDate: Map<String, List<MealLogItemUiModel>> = emptyMap(),
-    val viewMode: ViewMode = ViewMode.WEEK,
-    val searchQuery: String = "",
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
 sealed interface MealLogEvent {
-    data class MealClicked(val mealId: String) : MealLogEvent
-    data class ViewModeChanged(val mode: ViewMode) : MealLogEvent
     data class SearchQueryChanged(val query: String) : MealLogEvent
-    object RegisterMealClicked : MealLogEvent
-    object ViewStatsClicked : MealLogEvent
+    data class ViewModeChanged(val mode: ViewMode) : MealLogEvent
     object CalendarClicked : MealLogEvent
-    object Refresh : MealLogEvent
+    object RegisterMealClicked : MealLogEvent
+    data class MealClicked(val mealId: String) : MealLogEvent
+    object ViewStatsClicked : MealLogEvent
 }
 
 sealed interface MealLogNavigation {
@@ -54,7 +61,9 @@ sealed interface MealLogNavigation {
 
 @HiltViewModel
 class MealLogViewModel @Inject constructor(
-    // TODO: Inject MealLogRepository
+    private val mealLogRepository: MealLogRepository,
+    private val recipeRepository: RecipeRepository,
+    private val decrementIngredientsStockUseCase: DecrementIngredientsStockUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MealLogUiState())
@@ -63,138 +72,137 @@ class MealLogViewModel @Inject constructor(
     private val _navigation = MutableStateFlow<MealLogNavigation?>(null)
     val navigation: StateFlow<MealLogNavigation?> = _navigation.asStateFlow()
 
+    private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    private val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+    private var allMealLogs: List<MealLog> = emptyList()
+
     init {
-        loadMealLog()
+        loadMealLogs()
     }
 
     fun onEvent(event: MealLogEvent) {
         when (event) {
-            is MealLogEvent.MealClicked -> {
-                // TODO: Navigate to meal detail
+            is MealLogEvent.SearchQueryChanged -> {
+                _uiState.update { it.copy(searchQuery = event.query) }
+                filterAndGroupMeals()
             }
 
             is MealLogEvent.ViewModeChanged -> {
                 _uiState.update { it.copy(viewMode = event.mode) }
-                // TODO: Reload data for different view mode
-            }
-
-            is MealLogEvent.SearchQueryChanged -> {
-                _uiState.update { it.copy(searchQuery = event.query) }
-                filterMeals(event.query)
-            }
-
-            MealLogEvent.RegisterMealClicked -> {
-                _navigation.value = MealLogNavigation.ToRegisterMeal
-            }
-
-            MealLogEvent.ViewStatsClicked -> {
-                _navigation.value = MealLogNavigation.ToStats
+                loadMealLogs()
             }
 
             MealLogEvent.CalendarClicked -> {
                 // TODO: Show calendar picker
             }
 
-            MealLogEvent.Refresh -> {
-                loadMealLog()
+            MealLogEvent.RegisterMealClicked -> {
+                _navigation.value = MealLogNavigation.ToRegisterMeal
+            }
+
+            is MealLogEvent.MealClicked -> {
+                // TODO: Navigate to meal detail or show edit dialog
+            }
+
+            MealLogEvent.ViewStatsClicked -> {
+                _navigation.value = MealLogNavigation.ToStats
             }
         }
     }
 
-    private fun filterMeals(query: String) {
-        if (query.isBlank()) {
-            // Si no hay búsqueda, mostrar todos
-            loadMealLog()
-            return
-        }
-
-        // Filtrar comidas por nombre o tipo
-        val allMeals = _uiState.value.mealsByDate.values.flatten()
-        val filtered = allMeals.filter { meal ->
-            meal.mealName.contains(query, ignoreCase = true) ||
-                    meal.mealType.contains(query, ignoreCase = true)
-        }
-
-        val groupedFiltered = filtered.groupBy { it.date }
-        _uiState.update { it.copy(mealsByDate = groupedFiltered) }
-    }
-
-    private fun loadMealLog() {
+    private fun loadMealLogs() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            // TODO: Call repository
-            kotlinx.coroutines.delay(300)
+            try {
+                val (startDate, endDate) = getDateRange()
 
-            val mockMeals = getMockMealLog()
-            val groupedMeals = mockMeals.groupBy { it.date }
+                mealLogRepository.getMealHistory(startDate, endDate).collect { logs ->
+                    allMealLogs = logs
 
-            _uiState.update { it.copy(
-                weeklyMealsCount = mockMeals.size,
-                homemadeMealsCount = mockMeals.count { it.status == MealStatus.COOKED || it.status == MealStatus.RECIPE },
-                mealsByDate = groupedMeals,
-                isLoading = false
-            )}
+                    val weeklyCount = logs.size
+                    val homemadeCount = logs.size // TODO: Filter by isHomemade flag when added
+
+                    _uiState.update { it.copy(
+                        weeklyMealsCount = weeklyCount,
+                        homemadeMealsCount = homemadeCount,
+                        isLoading = false
+                    )}
+
+                    filterAndGroupMeals()
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al cargar historial"
+                )}
+            }
         }
     }
 
-    private fun getMockMealLog() = listOf(
-        // Hoy
-        MealLogItemUiModel(
-            id = "1",
-            mealName = "Avena con fruta",
-            mealType = "Desayuno",
-            time = "07:45",
-            calories = 320,
-            imageUrl = null,
-            status = MealStatus.PLAN,
-            date = "Hoy • Jue 14"
-        ),
-        MealLogItemUiModel(
-            id = "2",
-            mealName = "Tacos de pollo",
-            mealType = "Almuerzo",
-            time = "13:20",
-            calories = 540,
-            imageUrl = "https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=200",
-            status = MealStatus.RECIPE,
-            date = "Hoy • Jue 14"
-        ),
+    private fun filterAndGroupMeals() {
+        val query = _uiState.value.searchQuery
 
-        // Ayer
-        MealLogItemUiModel(
-            id = "3",
-            mealName = "Pasta con verduras",
-            mealType = "Cena",
-            time = "20:10",
-            calories = 610,
-            imageUrl = "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=200",
-            status = MealStatus.COOKED,
-            date = "Ayer • Mié 13"
-        ),
-        MealLogItemUiModel(
-            id = "4",
-            mealName = "Sopa de lentejas",
-            mealType = "Comida",
-            time = "14:05",
-            calories = 430,
-            imageUrl = "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=200",
-            status = MealStatus.LEFTOVER,
-            date = "Ayer • Mié 13"
-        ),
+        // Filtrar por búsqueda
+        val filteredLogs = if (query.isBlank()) {
+            allMealLogs
+        } else {
+            allMealLogs.filter {
+                it.recipeName.contains(query, ignoreCase = true)
+            }
+        }
 
-        // Lun 11
-        MealLogItemUiModel(
-            id = "5",
-            mealName = "Tortilla francesa",
-            mealType = "Cena",
-            time = "20:30",
-            calories = 720,
-            imageUrl = null,
-            status = MealStatus.COOKED,
-            date = "Lun 11"
+        // Agrupar por fecha
+        val grouped = filteredLogs
+            .sortedByDescending { it.timestamp }
+            .groupBy { dateFormatter.format(Date(it.timestamp)) }
+            .mapValues { (_, meals) ->
+                meals.map { mapToUiModel(it) }
+            }
+
+        _uiState.update { it.copy(mealsByDate = grouped) }
+    }
+
+    private fun mapToUiModel(mealLog: MealLog): MealUiModel {
+        return MealUiModel(
+            id = mealLog.id,
+            mealName = mealLog.recipeName,
+            mealType = when (mealLog.mealType) {
+                MealType.BREAKFAST -> "Desayuno"
+                MealType.LUNCH -> "Comida"
+                MealType.DINNER -> "Cena"
+                MealType.SNACK -> "Merienda"
+            },
+            time = timeFormatter.format(Date(mealLog.timestamp)),
+            calories = mealLog.caloriesEstimate ?: 0,
+            imageUrl = null, // TODO: Get from recipe
+            status = MealStatus.COOKED  // ✅ COOKED en lugar de LOGGED
         )
-    )
+    }
+
+    private fun getDateRange(): Pair<Long, Long> {
+        val calendar = Calendar.getInstance()
+        val endDate = calendar.timeInMillis
+
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+
+        val startDate = when (_uiState.value.viewMode) {
+            ViewMode.WEEK -> {
+                calendar.add(Calendar.DAY_OF_YEAR, -7)
+                calendar.timeInMillis
+            }
+            ViewMode.MONTH -> {
+                calendar.add(Calendar.MONTH, -1)
+                calendar.timeInMillis
+            }
+        }
+
+        return startDate to endDate
+    }
 
     fun clearNavigation() {
         _navigation.value = null
