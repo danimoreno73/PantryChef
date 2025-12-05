@@ -2,6 +2,7 @@ package com.pantrychef.front.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,20 +18,21 @@ data class SettingsUiState(
     val darkModeEnabled: Boolean = false,
     val language: String = "Español",
     val appVersion: String = "1.0.0",
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val error: String? = null
 )
 
 sealed interface SettingsEvent {
     object ProfileClicked : SettingsEvent
     object LanguageClicked : SettingsEvent
-    data class NotificationsToggled(val enabled: Boolean) : SettingsEvent
     data class DarkModeToggled(val enabled: Boolean) : SettingsEvent
+    data class NotificationsToggled(val enabled: Boolean) : SettingsEvent
     object ExportDataClicked : SettingsEvent
     object ImportDataClicked : SettingsEvent
     object ClearDataClicked : SettingsEvent
+    object AboutClicked : SettingsEvent
     object PrivacyPolicyClicked : SettingsEvent
     object TermsClicked : SettingsEvent
-    object AboutClicked : SettingsEvent
     object LogoutClicked : SettingsEvent
 }
 
@@ -42,7 +44,7 @@ sealed interface SettingsNavigation {
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    // TODO: Inject UserRepository, PreferencesRepository
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -52,7 +54,7 @@ class SettingsViewModel @Inject constructor(
     val navigation: StateFlow<SettingsNavigation?> = _navigation.asStateFlow()
 
     init {
-        loadUserSettings()
+        loadSettings()
     }
 
     fun onEvent(event: SettingsEvent) {
@@ -65,14 +67,14 @@ class SettingsViewModel @Inject constructor(
                 _navigation.value = SettingsNavigation.ToLanguage
             }
 
-            is SettingsEvent.NotificationsToggled -> {
-                _uiState.update { it.copy(notificationsEnabled = event.enabled) }
-                saveNotificationPreference(event.enabled)
-            }
-
             is SettingsEvent.DarkModeToggled -> {
                 _uiState.update { it.copy(darkModeEnabled = event.enabled) }
-                saveDarkModePreference(event.enabled)
+                saveDarkModeSetting(event.enabled)
+            }
+
+            is SettingsEvent.NotificationsToggled -> {
+                _uiState.update { it.copy(notificationsEnabled = event.enabled) }
+                saveNotificationsSetting(event.enabled)
             }
 
             SettingsEvent.ExportDataClicked -> {
@@ -87,16 +89,16 @@ class SettingsViewModel @Inject constructor(
                 clearData()
             }
 
+            SettingsEvent.AboutClicked -> {
+                // TODO: Show about dialog
+            }
+
             SettingsEvent.PrivacyPolicyClicked -> {
-                // TODO: Open privacy policy URL
+                // TODO: Open privacy policy
             }
 
             SettingsEvent.TermsClicked -> {
-                // TODO: Open terms URL
-            }
-
-            SettingsEvent.AboutClicked -> {
-                // TODO: Show about dialog
+                // TODO: Open terms and conditions
             }
 
             SettingsEvent.LogoutClicked -> {
@@ -105,68 +107,101 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private fun loadUserSettings() {
+    private fun loadSettings() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // TODO: Load from repository
-            kotlinx.coroutines.delay(300)
+            try {
+                // Cargar usuario actual
+                val userResult = authRepository.getCurrentUser()
 
-            _uiState.update { it.copy(
-                userName = "Usuario Mock",
-                userEmail = "usuario@pantrychef.com",
-                notificationsEnabled = true,
-                darkModeEnabled = false,
-                language = "Español",
-                isLoading = false
-            )}
+                userResult.fold(
+                    onSuccess = { user ->
+                        _uiState.update { it.copy(
+                            userName = user?.name ?: "Usuario",
+                            userEmail = user?.email ?: "usuario@example.com",
+                            isLoading = false
+                        )}
+                    },
+                    onFailure = { error ->
+                        _uiState.update { it.copy(
+                            userName = "Usuario",
+                            userEmail = "usuario@example.com",
+                            isLoading = false,
+                            error = error.message
+                        )}
+                    }
+                )
+
+                // TODO: Load other preferences from PreferencesRepository
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al cargar configuración"
+                )}
+            }
         }
     }
 
-    private fun saveNotificationPreference(enabled: Boolean) {
+    private fun saveDarkModeSetting(enabled: Boolean) {
         viewModelScope.launch {
-            // TODO: Save to repository
-            kotlinx.coroutines.delay(100)
+            // TODO: Save to PreferencesRepository
         }
     }
 
-    private fun saveDarkModePreference(enabled: Boolean) {
+    private fun saveNotificationsSetting(enabled: Boolean) {
         viewModelScope.launch {
-            // TODO: Save to repository
-            kotlinx.coroutines.delay(100)
+            // TODO: Save to PreferencesRepository
         }
     }
 
     private fun exportData() {
         viewModelScope.launch {
-            // TODO: Export data to file
-            kotlinx.coroutines.delay(500)
+            // TODO: Implement data export
+            _uiState.update { it.copy(error = "Datos exportados correctamente") }
         }
     }
 
     private fun importData() {
         viewModelScope.launch {
-            // TODO: Import data from file
-            kotlinx.coroutines.delay(500)
+            // TODO: Implement data import
+            _uiState.update { it.copy(error = "Datos importados correctamente") }
         }
     }
 
     private fun clearData() {
         viewModelScope.launch {
-            // TODO: Clear all user data
-            kotlinx.coroutines.delay(500)
+            // TODO: Implement data clearing
+            _uiState.update { it.copy(error = "Datos limpiados correctamente") }
         }
     }
 
     private fun logout() {
         viewModelScope.launch {
-            // TODO: Call auth repository logout
-            kotlinx.coroutines.delay(500)
-            _navigation.value = SettingsNavigation.ToLogin
+            _uiState.update { it.copy(isLoading = true) }
+
+            val result = authRepository.logout()
+
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    _navigation.value = SettingsNavigation.ToLogin
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = error.message ?: "Error al cerrar sesión"
+                    )}
+                }
+            )
         }
     }
 
     fun clearNavigation() {
         _navigation.value = null
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }

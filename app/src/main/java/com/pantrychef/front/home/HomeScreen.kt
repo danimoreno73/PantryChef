@@ -167,7 +167,7 @@ private fun HomeContent(
                 ) {
                     QuickActionButton(
                         icon = Icons.Outlined.Add,
-                        label = "Añadir despensa",
+                        label = "Añadir productos en la despensa",
                         onClick = { onEvent(HomeEvent.AddToPantryClicked) },
                         modifier = Modifier.weight(1f)
                     )

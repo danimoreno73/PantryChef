@@ -61,7 +61,7 @@ private fun QuickActionButtonPreview() {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             QuickActionButton(
                 icon = Icons.Filled.Add,
-                label = "Añadir despensa",
+                label = "Añadir productos en la despensa",
                 onClick = {}
             )
             QuickActionButton(
