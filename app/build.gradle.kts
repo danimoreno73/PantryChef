@@ -66,6 +66,8 @@ dependencies {
     implementation(libs.engage.core)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.material3)
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.junit.jupiter)
     ksp(libs.hilt.compiler) // ksp en lugar de implementation
     implementation(libs.hilt.navigation.compose)
     // Room (Local DB)
@@ -83,8 +85,22 @@ dependencies {
     // Json
     implementation(libs.kotlinx.serialization.json)
 
+    // ===== TESTING =====
+    // JUnit 4 - Framework de testing
+    testImplementation("junit:junit:4.13.2")
 
-    testImplementation(libs.junit)
+    // Kotlinx Coroutines Test - Para testear suspends y Flow
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
+    // Mockk - Para crear mocks/fakes
+    testImplementation("io.mockk:mockk:1.13.8")
+
+    // Turbine - Para testear Flows fácilmente
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+
+    // Google Truth - Assertions más legibles (opcional)
+    testImplementation("com.google.truth:truth:1.1.5")
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
