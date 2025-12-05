@@ -1,6 +1,7 @@
 package com.pantrychef.back.di
 
 import com.pantrychef.back.repository.AlertRepository
+import com.pantrychef.back.repository.AuthRepository
 import com.pantrychef.back.repository.MealLogRepository
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.RecipeRepository
@@ -15,7 +16,10 @@ import com.pantrychef.back.usecase.GetAllProductsUseCase
 import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetLowStockProductsUseCase
+import com.pantrychef.back.usecase.LogOutUserUseCase
+import com.pantrychef.back.usecase.LoginUserUseCase
 import com.pantrychef.back.usecase.RegisterMealUseCase
+import com.pantrychef.back.usecase.RegisterUserUseCase
 import com.pantrychef.back.usecase.UpdateProductQuantityUseCase
 import com.pantrychef.back.usecase.UpdateRecipeUseCase
 import dagger.Module
@@ -157,5 +161,29 @@ object UseCaseModule {
         recipeRepository: RecipeRepository
     ): UpdateRecipeUseCase{
         return UpdateRecipeUseCase(recipeRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideLoginUserUseCase(
+        authRepository: AuthRepository
+    ): LoginUserUseCase{
+        return LoginUserUseCase(authRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideLogOutUserUseCase(
+        authRepository: AuthRepository
+    ): LogOutUserUseCase{
+        return LogOutUserUseCase(authRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRegisterUserUseCase(
+        authRepository: AuthRepository
+    ): RegisterUserUseCase{
+        return RegisterUserUseCase(authRepository)
     }
 }
