@@ -295,7 +295,7 @@ private fun RecipeDetailContent(
 
                 AfterCookingCard(
                     title = "Registrar comida",
-                    subtitle = "Deducir ingredientes de la despensa",
+                    subtitle = "Reduce los ingredientes de la despensa",
                     actionLabel = "Listo",
                     onClick = { onEvent(RecipeDetailEvent.RegisterMeal) }
                 )

@@ -77,6 +77,8 @@ class PantryViewModel @Inject constructor(
     private val _navigation = MutableStateFlow<PantryNavigation?>(null)
     val navigation: StateFlow<PantryNavigation?> = _navigation.asStateFlow()
 
+    private var allProducts: List<ProductCardUiModel> = emptyList()
+
     init {
         loadProducts()
     }
@@ -85,19 +87,17 @@ class PantryViewModel @Inject constructor(
         when (event) {
             is PantryEvent.SearchQueryChanged -> {
                 _uiState.update { it.copy(searchQuery = event.query) }
-                searchProducts(event.query)
+                applyFilters()
             }
 
             is PantryEvent.CategorySelected -> {
                 _uiState.update { it.copy(selectedCategory = event.category) }
-                loadProductsByCategory(event.category)
+                applyFilters()
             }
 
             is PantryEvent.SortOptionChanged -> {
                 _uiState.update { it.copy(sortBy = event.sortOption) }
-                // Re-filter con el nuevo sort
-                val currentProducts = _uiState.value.filteredProducts
-                _uiState.update { it.copy(filteredProducts = sortProducts(currentProducts)) }
+                applyFilters()
             }
 
             is PantryEvent.ProductClicked -> {
@@ -120,13 +120,14 @@ class PantryViewModel @Inject constructor(
 
             try {
                 productRepository.getAllProducts().collect { products ->
-                    val productCards = products.map { mapToProductCard(it) }
-                    val sorted = sortProducts(productCards)
+                    allProducts = products.map { mapToProductCard(it) }
+
                     _uiState.update { it.copy(
-                        products = sorted,
-                        filteredProducts = sorted,
+                        products = allProducts,
                         isLoading = false
                     )}
+
+                    applyFilters()
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(
@@ -137,71 +138,38 @@ class PantryViewModel @Inject constructor(
         }
     }
 
-    private fun loadProductsByCategory(category: ProductCategory) {
-        if (category == ProductCategory.ALL) {
-            loadProducts()
-            return
+    private fun applyFilters() {
+        var filtered = allProducts
+
+        // 1. Filtrar por categoría
+        val selectedCategory = _uiState.value.selectedCategory
+        if (selectedCategory != ProductCategory.ALL) {
+            val categoryName = when (selectedCategory) {
+                ProductCategory.DAIRY -> "DAIRY"
+                ProductCategory.PROTEINS -> "PROTEINS"
+                ProductCategory.GRAINS -> "GRAINS"
+                ProductCategory.VEGETABLES -> "VEGETABLES"
+                ProductCategory.FRUITS -> "FRUITS"
+                ProductCategory.CONDIMENTS -> "CONDIMENTS"
+                ProductCategory.OTHERS -> "OTHERS"
+                ProductCategory.ALL -> ""
+            }
+            filtered = filtered.filter { it.category == categoryName }
         }
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-
-            try {
-                val categoryEnum = when (category) {
-                    ProductCategory.DAIRY -> Category.DAIRY
-                    ProductCategory.PROTEINS -> Category.PROTEINS
-                    ProductCategory.GRAINS -> Category.GRAINS
-                    ProductCategory.VEGETABLES -> Category.VEGETABLES
-                    ProductCategory.FRUITS -> Category.FRUITS
-                    ProductCategory.CONDIMENTS -> Category.CONDIMENTS
-                    ProductCategory.OTHERS -> Category.OTHERS
-                    ProductCategory.ALL -> null
-                }
-
-                if (categoryEnum != null) {
-                    productRepository.getProductsByCategory(categoryEnum).collect { products ->
-                        val productCards = products.map { mapToProductCard(it) }
-                        val sorted = sortProducts(productCards)
-                        _uiState.update { it.copy(
-                            filteredProducts = sorted,
-                            isLoading = false
-                        )}
-                    }
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    error = e.message ?: "Error al filtrar productos"
-                )}
+        // 2. Filtrar por búsqueda
+        val query = _uiState.value.searchQuery
+        if (query.isNotBlank()) {
+            filtered = filtered.filter {
+                it.name.contains(query, ignoreCase = true) ||
+                        it.category.contains(query, ignoreCase = true)
             }
         }
-    }
 
-    private fun searchProducts(query: String) {
-        if (query.isBlank()) {
-            loadProducts()
-            return
-        }
+        // 3. Ordenar
+        val sorted = sortProducts(filtered)
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-
-            try {
-                productRepository.searchProducts(query).collect { products ->
-                    val productCards = products.map { mapToProductCard(it) }
-                    val sorted = sortProducts(productCards)
-                    _uiState.update { it.copy(
-                        filteredProducts = sorted,
-                        isLoading = false
-                    )}
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    error = e.message ?: "Error al buscar productos"
-                )}
-            }
-        }
+        _uiState.update { it.copy(filteredProducts = sorted) }
     }
 
     private fun sortProducts(products: List<ProductCardUiModel>): List<ProductCardUiModel> {

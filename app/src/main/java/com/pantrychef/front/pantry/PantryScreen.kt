@@ -99,13 +99,6 @@ private fun PantryContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
-                IconButton(onClick = { /* TODO: Show filter dialog */ }) {
-                    Icon(
-                        imageVector = Icons.Filled.FilterList,
-                        contentDescription = "Filtros"
-                    )
-                }
             }
 
             // Search bar
