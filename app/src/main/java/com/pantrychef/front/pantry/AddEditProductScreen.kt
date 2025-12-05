@@ -45,6 +45,12 @@ fun AddEditProductScreen(
                 navController.popBackStack()
                 viewModel.clearNavigation()
             }
+            AddEditProductNavigation.ToPantry -> {
+                // Eliminar: Salir de Edit + Detail, volver a Pantry
+                navController.popBackStack() // Sale de Edit
+                navController.popBackStack() // Sale de Detail
+                viewModel.clearNavigation()
+            }
             null -> { /* No navigation */ }
         }
     }

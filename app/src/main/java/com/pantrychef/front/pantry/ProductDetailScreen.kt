@@ -248,27 +248,19 @@ private fun ProductDetailContent(
 
             QuickActionCard(
                 title = "Añadir a la lista de compra",
-                subtitle = "Se sugiere 2 L para la semana",
-                actionLabel = "+2 L",
+                subtitle = "Se sugiere ${uiState.suggestedQuantity} para reponer",
+                actionLabel = "+${uiState.suggestedQuantity}",
                 onClick = { onEvent(ProductDetailEvent.AddToShoppingList) }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             QuickActionCard(
-                title = "Marcar como repuesto",
-                subtitle = "Mover alerta a resuelto",
-                actionLabel = "Actualizar",
-                onClick = { onEvent(ProductDetailEvent.MarkAsResolved) }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            QuickActionCard(
-                title = "Descartar restante",
+                title = "Eliminar producto",
                 subtitle = "Eliminar del inventario",
                 actionLabel = "Eliminar",
-                onClick = { onEvent(ProductDetailEvent.DiscardRemaining) }
+                onClick = { onEvent(ProductDetailEvent.DeleteProduct) },
+                isDestructive = true
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -337,11 +329,15 @@ private fun QuickActionCard(
     title: String,
     subtitle: String,
     actionLabel: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isDestructive: Boolean = false
 ) {
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = if (isDestructive)
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+        else
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -354,7 +350,11 @@ private fun QuickActionCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isDestructive)
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
@@ -364,7 +364,10 @@ private fun QuickActionCard(
             }
 
             Surface(
-                color = MaterialTheme.colorScheme.primary,
+                color = if (isDestructive)
+                    MaterialTheme.colorScheme.error
+                else
+                    MaterialTheme.colorScheme.primary,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(

@@ -92,8 +92,8 @@ fun ProductCard(
                         Surface(
                             color = when (alertLevel) {
                                 ProductAlertLevel.EXPIRED -> MaterialTheme.colorScheme.error
-                                ProductAlertLevel.EXPIRING_SOON -> com.pantrychef.front.theme.BadgeWarning
-                                ProductAlertLevel.LOW_STOCK -> com.pantrychef.front.theme.BadgeInfo
+                                ProductAlertLevel.EXPIRING_SOON -> MaterialTheme.colorScheme.error
+                                ProductAlertLevel.LOW_STOCK -> com.pantrychef.front.theme.BadgeWarning
                                 else -> MaterialTheme.colorScheme.surface
                             },
                             shape = RoundedCornerShape(6.dp)

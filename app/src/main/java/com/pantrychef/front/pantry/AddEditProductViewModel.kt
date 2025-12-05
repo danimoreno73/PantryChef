@@ -47,6 +47,7 @@ sealed interface AddEditProductEvent {
 
 sealed interface AddEditProductNavigation {
     object Back : AddEditProductNavigation
+    object ToPantry : AddEditProductNavigation
 }
 
 @HiltViewModel
@@ -203,7 +204,7 @@ class AddEditProductViewModel @Inject constructor(
             result.fold(
                 onSuccess = {
                     _uiState.update { it.copy(isLoading = false) }
-                    _navigation.value = AddEditProductNavigation.Back
+                    _navigation.value = AddEditProductNavigation.ToPantry  // ✅ CAMBIAR
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(
