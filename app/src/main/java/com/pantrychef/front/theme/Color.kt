@@ -12,8 +12,8 @@ val BackgroundLight = Color(0xFFFAFAFA)
 val SurfaceLight = Color(0xFFFFFFFF)
 
 // Badges y estados
-val BadgeUrgent = Color(0xFFFF6B00)     // Naranja "Urgente"
-val BadgeWarning = Color(0xFFFFB300)    // Amarillo "Bajo/Reponer"
+val BadgeUrgent = Color(0xFFF85A2A)     // Naranja "Urgente"
+val BadgeWarning = Color(0xFFFF9800)    // Amarillo "Bajo/Reponer"
 val BadgeSuccess = Color(0xFF2E7D32)    // Verde "Cocinable"
 val BadgeInfo = Color(0xFF0288D1)       // Azul info
 

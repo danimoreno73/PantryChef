@@ -25,7 +25,8 @@ enum class BadgeSeverity {
     WARNING,   // Amarillo - Bajo, Reponer
     SUCCESS,   // Verde - Cocinable, En despensa
     INFO,      // Azul - Información general
-    LOW        // Amarillo claro - Stock bajo
+    LOW,
+    CRITICAL //ROJO
 }
 
 @Composable
@@ -35,6 +36,7 @@ fun StatusBadge(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = when (severity) {
+        BadgeSeverity.CRITICAL -> Color(0xFFD32F2F)
         BadgeSeverity.URGENT -> BadgeUrgent
         BadgeSeverity.WARNING -> BadgeWarning
         BadgeSeverity.SUCCESS -> BadgeSuccess

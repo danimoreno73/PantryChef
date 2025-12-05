@@ -183,9 +183,9 @@ class HomeViewModel @Inject constructor(
                 },
                 categoryInfo = "${product.category.name} • ${product.location ?: "Sin ubicación"}",
                 severity = when {
-                    product.quantity == 0f -> BadgeSeverity.URGENT
-                    product.quantity < product.lowStockThreshold * 0.5f -> BadgeSeverity.WARNING
-                    else -> BadgeSeverity.INFO
+                    product.quantity == 0f -> BadgeSeverity.CRITICAL  // ✅ Rojo
+                    product.quantity < product.lowStockThreshold * 0.5f -> BadgeSeverity.URGENT  // Naranja
+                    else -> BadgeSeverity.WARNING  // Amarillo
                 },
                 actionLabel = "Reponer"
             )

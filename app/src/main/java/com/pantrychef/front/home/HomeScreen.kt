@@ -96,12 +96,6 @@ private fun HomeContent(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = { /* TODO: Grid view */ }) {
-                        Icon(
-                            imageVector = Icons.Filled.GridView,
-                            contentDescription = "Vista en cuadrícula"
-                        )
-                    }
                     IconButton(onClick = { onEvent(HomeEvent.SettingsClicked) }) {  // <- Cambiar esto
                         Icon(
                             imageVector = Icons.Outlined.Settings,
