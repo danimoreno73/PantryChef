@@ -23,7 +23,8 @@ data class SettingsUiState(
     val appVersion: String = "1.0.0",
     val isLoading: Boolean = false,
     val error: String? = null,
-    val showPermissionDialog: Boolean = false
+    val showPermissionDialog: Boolean = false,
+    val showDisableNotificationsDialog: Boolean = false
 )
 
 sealed interface SettingsEvent {
@@ -40,6 +41,8 @@ sealed interface SettingsEvent {
     object PrivacyPolicyClicked : SettingsEvent
     object TermsClicked : SettingsEvent
     object LogoutClicked : SettingsEvent
+    object DismissDisableNotificationsDialog : SettingsEvent
+    object ConfirmDisableNotifications : SettingsEvent
 }
 
 sealed interface SettingsNavigation {
@@ -47,6 +50,7 @@ sealed interface SettingsNavigation {
     object ToLanguage : SettingsNavigation
     object ToLogin : SettingsNavigation
     object RequestNotificationPermission : SettingsNavigation
+    object OpenAppSettings : SettingsNavigation
 }
 
 @HiltViewModel
@@ -121,6 +125,22 @@ class SettingsViewModel @Inject constructor(
             SettingsEvent.LogoutClicked -> {
                 logout()
             }
+            SettingsEvent.ConfirmDisableNotifications -> {
+                _uiState.update { it.copy(
+                    notificationsEnabled = false,
+                    showDisableNotificationsDialog = false
+                )}
+                saveNotificationsSetting(false)
+                // Abrir ajustes del sistema
+                _navigation.value = SettingsNavigation.OpenAppSettings
+            }
+
+            SettingsEvent.DismissDisableNotificationsDialog -> {
+                _uiState.update { it.copy(
+                    notificationsEnabled = true,
+                    showDisableNotificationsDialog = false
+                )}
+            }
         }
     }
 
@@ -132,13 +152,11 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(notificationsEnabled = true) }
                 saveNotificationsSetting(true)
             } else {
-                // Necesita solicitar permiso (Android mostrará diálogo nativo)
                 _navigation.value = SettingsNavigation.RequestNotificationPermission
             }
         } else {
-            // Usuario desactiva notificaciones
-            _uiState.update { it.copy(notificationsEnabled = false) }
-            saveNotificationsSetting(false)
+            // Usuario quiere desactivar - mostrar confirmación
+            _uiState.update { it.copy(showDisableNotificationsDialog = true) }
         }
     }
 

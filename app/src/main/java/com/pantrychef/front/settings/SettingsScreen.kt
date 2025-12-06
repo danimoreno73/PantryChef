@@ -1,7 +1,10 @@
 package com.pantrychef.front.settings
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -18,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,11 +35,13 @@ import com.pantrychef.front.theme.PantryChefTheme
 import com.pantrychef.front.theme.PrimaryGreenLight
 import com.pantrychef.front.theme.TextSecondary
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     navController: NavController,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navigation by viewModel.navigation.collectAsStateWithLifecycle()
 
@@ -69,14 +75,38 @@ fun SettingsScreen(
                 }
                 viewModel.clearNavigation()
             }
+            SettingsNavigation.OpenAppSettings -> {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", context.packageName, null)
+                }
+                context.startActivity(intent)
+                viewModel.clearNavigation()
+            }
             null -> { /* No navigation */ }
         }
     }
 
-    SettingsContent(
-        uiState = uiState,
-        onEvent = viewModel::onEvent
-    )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Configuración") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        SettingsContent(
+            uiState = uiState,
+            onEvent = viewModel::onEvent,
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
 
     // Permission denied dialog
     if (uiState.showPermissionDialog) {
@@ -102,31 +132,54 @@ fun SettingsScreen(
             }
         )
     }
+
+    // Disable notifications confirmation dialog
+    if (uiState.showDisableNotificationsDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onEvent(SettingsEvent.DismissDisableNotificationsDialog) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.NotificationsOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text("Desactivar notificaciones")
+            },
+            text = {
+                Text("¿Estás seguro de que quieres desactivar las notificaciones? Ya no recibirás alertas de productos con bajo stock ni recordatorios.")
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onEvent(SettingsEvent.DismissDisableNotificationsDialog) }) {
+                    Text("Cancelar")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.onEvent(SettingsEvent.ConfirmDisableNotifications) },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Desactivar")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 private fun SettingsContent(
     uiState: SettingsUiState,
-    onEvent: (SettingsEvent) -> Unit
+    onEvent: (SettingsEvent) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // Header
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Configuración",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
         // User profile section
         Surface(
             onClick = { onEvent(SettingsEvent.ProfileClicked) },
