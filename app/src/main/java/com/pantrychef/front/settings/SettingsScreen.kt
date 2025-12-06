@@ -1,5 +1,9 @@
 package com.pantrychef.front.settings
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -35,6 +39,13 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navigation by viewModel.navigation.collectAsStateWithLifecycle()
 
+    // Permission launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        viewModel.onEvent(SettingsEvent.NotificationPermissionResult(granted))
+    }
+
     // Handle navigation
     LaunchedEffect(navigation) {
         when (navigation) {
@@ -52,6 +63,12 @@ fun SettingsScreen(
                 }
                 viewModel.clearNavigation()
             }
+            SettingsNavigation.RequestNotificationPermission -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                viewModel.clearNavigation()
+            }
             null -> { /* No navigation */ }
         }
     }
@@ -60,6 +77,31 @@ fun SettingsScreen(
         uiState = uiState,
         onEvent = viewModel::onEvent
     )
+
+    // Permission denied dialog
+    if (uiState.showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onEvent(SettingsEvent.DismissPermissionDialog) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Notifications,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text("Permiso de notificaciones")
+            },
+            text = {
+                Text("Para recibir alertas de productos con bajo stock y recordatorios, necesitas habilitar las notificaciones en la configuración de tu dispositivo.")
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onEvent(SettingsEvent.DismissPermissionDialog) }) {
+                    Text("Entendido")
+                }
+            }
+        )
+    }
 }
 
 @Composable

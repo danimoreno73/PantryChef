@@ -1,9 +1,12 @@
 package com.pantrychef.front.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pantrychef.back.repository.AuthRepository
+import com.pantrychef.back.utils.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,12 +17,13 @@ import javax.inject.Inject
 data class SettingsUiState(
     val userName: String = "",
     val userEmail: String = "",
-    val notificationsEnabled: Boolean = true,
+    val notificationsEnabled: Boolean = false,
     val darkModeEnabled: Boolean = false,
     val language: String = "Español",
     val appVersion: String = "1.0.0",
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showPermissionDialog: Boolean = false
 )
 
 sealed interface SettingsEvent {
@@ -27,6 +31,8 @@ sealed interface SettingsEvent {
     object LanguageClicked : SettingsEvent
     data class DarkModeToggled(val enabled: Boolean) : SettingsEvent
     data class NotificationsToggled(val enabled: Boolean) : SettingsEvent
+    data class NotificationPermissionResult(val granted: Boolean) : SettingsEvent
+    object DismissPermissionDialog : SettingsEvent
     object ExportDataClicked : SettingsEvent
     object ImportDataClicked : SettingsEvent
     object ClearDataClicked : SettingsEvent
@@ -40,10 +46,12 @@ sealed interface SettingsNavigation {
     object ToProfile : SettingsNavigation
     object ToLanguage : SettingsNavigation
     object ToLogin : SettingsNavigation
+    object RequestNotificationPermission : SettingsNavigation
 }
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
@@ -52,6 +60,8 @@ class SettingsViewModel @Inject constructor(
 
     private val _navigation = MutableStateFlow<SettingsNavigation?>(null)
     val navigation: StateFlow<SettingsNavigation?> = _navigation.asStateFlow()
+
+    private val notificationHelper = NotificationHelper(context)
 
     init {
         loadSettings()
@@ -73,8 +83,15 @@ class SettingsViewModel @Inject constructor(
             }
 
             is SettingsEvent.NotificationsToggled -> {
-                _uiState.update { it.copy(notificationsEnabled = event.enabled) }
-                saveNotificationsSetting(event.enabled)
+                handleNotificationToggle(event.enabled)
+            }
+
+            is SettingsEvent.NotificationPermissionResult -> {
+                handlePermissionResult(event.granted)
+            }
+
+            SettingsEvent.DismissPermissionDialog -> {
+                _uiState.update { it.copy(showPermissionDialog = false) }
             }
 
             SettingsEvent.ExportDataClicked -> {
@@ -107,6 +124,41 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private fun handleNotificationToggle(enabled: Boolean) {
+        if (enabled) {
+            // Usuario quiere activar notificaciones
+            if (notificationHelper.checkNotificationPermission(context)) {
+                // Ya tiene permiso
+                _uiState.update { it.copy(notificationsEnabled = true) }
+                saveNotificationsSetting(true)
+            } else {
+                // Necesita solicitar permiso (Android mostrará diálogo nativo)
+                _navigation.value = SettingsNavigation.RequestNotificationPermission
+            }
+        } else {
+            // Usuario desactiva notificaciones
+            _uiState.update { it.copy(notificationsEnabled = false) }
+            saveNotificationsSetting(false)
+        }
+    }
+
+    private fun handlePermissionResult(granted: Boolean) {
+        if (granted) {
+            // Permiso concedido
+            _uiState.update { it.copy(
+                notificationsEnabled = true,
+                showPermissionDialog = false
+            )}
+            saveNotificationsSetting(true)
+        } else {
+            // Permiso denegado - mostrar diálogo solo si fue denegado permanentemente
+            _uiState.update { it.copy(
+                notificationsEnabled = false,
+                showPermissionDialog = true // Solo se mostrará si se denegó permanentemente
+            )}
+        }
+    }
+
     private fun loadSettings() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -117,9 +169,13 @@ class SettingsViewModel @Inject constructor(
 
                 userResult.fold(
                     onSuccess = { user ->
+                        // Verificar si tiene permiso de notificaciones
+                        val hasPermission = notificationHelper.checkNotificationPermission(context)
+
                         _uiState.update { it.copy(
                             userName = user?.name ?: "Usuario",
                             userEmail = user?.email ?: "usuario@example.com",
+                            notificationsEnabled = hasPermission,
                             isLoading = false
                         )}
                     },
