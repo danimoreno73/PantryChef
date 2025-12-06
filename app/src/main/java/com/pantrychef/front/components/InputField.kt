@@ -31,7 +31,10 @@ fun InputField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     isError: Boolean = false,
     errorMessage: String? = null,
-    placeholder: String? = null
+    placeholder: String? = null,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE
 ) {
     Column(modifier = modifier) {
         OutlinedTextField(
@@ -44,7 +47,9 @@ fun InputField(
             },
             trailingIcon = trailingIcon,
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            singleLine = singleLine,
+            minLines = minLines,
+            maxLines = maxLines,
             isError = isError,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             visualTransformation = visualTransformation,
@@ -70,11 +75,24 @@ fun InputField(
 @Composable
 private fun InputFieldPreview() {
     PantryChefTheme {
-        InputField(
-            value = "",
-            onValueChange = {},
-            label = "Correo electrónico",
-            placeholder = "tu@correo.com"
-        )
+        Column(modifier = Modifier.padding(16.dp)) {
+            InputField(
+                value = "",
+                onValueChange = {},
+                label = "Correo electrónico",
+                placeholder = "tu@correo.com"
+            )
+
+            InputField(
+                value = "",
+                onValueChange = {},
+                label = "Descripción",
+                placeholder = "Escribe aquí...",
+                singleLine = false,
+                minLines = 3,
+                maxLines = 6,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
     }
 }

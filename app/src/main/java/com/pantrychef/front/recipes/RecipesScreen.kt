@@ -40,7 +40,7 @@ fun RecipesScreen(
                 viewModel.clearNavigation()
             }
             RecipesNavigation.ToCreateRecipe -> {
-                // TODO: Navigate to create recipe
+                navController.navigate(Routes.RECIPES_ADD)
                 viewModel.clearNavigation()
             }
             null -> { /* No navigation */ }

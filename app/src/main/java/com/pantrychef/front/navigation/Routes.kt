@@ -14,6 +14,7 @@ object Routes {
 
     const val PANTRY_ADD = "pantry/add"
     const val PANTRY_EDIT = "pantry/edit/{productId}"
+    const val RECIPES_ADD = "recipes/add"
 
     // Helper functions para rutas con parámetros
     fun recipeDetail(recipeId: String) = "recipes/$recipeId"

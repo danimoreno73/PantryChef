@@ -21,6 +21,7 @@ import com.pantrychef.front.meallog.MealLogScreen
 import com.pantrychef.front.pantry.AddEditProductScreen
 import com.pantrychef.front.pantry.PantryScreen
 import com.pantrychef.front.pantry.ProductDetailScreen
+import com.pantrychef.front.recipes.AddRecipeScreen
 import com.pantrychef.front.recipes.RecipeDetailScreen
 import com.pantrychef.front.recipes.RecipesScreen
 import com.pantrychef.front.settings.SettingsScreen
@@ -144,6 +145,9 @@ fun NavGraph(
 
             composable(Routes.SETTINGS) {
                 SettingsScreen(navController)
+            }
+            composable(Routes.RECIPES_ADD) {
+                AddRecipeScreen(navController)
             }
         }
     }
