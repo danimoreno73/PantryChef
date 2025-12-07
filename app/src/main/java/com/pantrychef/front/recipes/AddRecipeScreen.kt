@@ -129,7 +129,7 @@ private fun AddRecipeContent(
             DropdownSelector(
                 label = "Dificultad",
                 value = uiState.difficulty,
-                options = listOf("Fácil", "Media", "Difícil"),
+                options = uiState.difficultyOptions,
                 onValueChange = { onEvent(AddRecipeEvent.DifficultyChanged(it)) }
             )
 
@@ -168,6 +168,7 @@ private fun AddRecipeContent(
                 IngredientCard(
                     index = index + 1,
                     ingredient = ingredient,
+                    unitOptions = uiState.unitOptions,
                     onNameChanged = { onEvent(AddRecipeEvent.IngredientNameChanged(ingredient.id, it)) },
                     onQuantityChanged = { onEvent(AddRecipeEvent.IngredientQuantityChanged(ingredient.id, it)) },
                     onUnitChanged = { onEvent(AddRecipeEvent.IngredientUnitChanged(ingredient.id, it)) },
@@ -237,6 +238,7 @@ private fun AddRecipeContent(
 private fun IngredientCard(
     index: Int,
     ingredient: IngredientInput,
+    unitOptions: List<String>,
     onNameChanged: (String) -> Unit,
     onQuantityChanged: (String) -> Unit,
     onUnitChanged: (String) -> Unit,
@@ -299,7 +301,7 @@ private fun IngredientCard(
                 DropdownSelector(
                     label = "Unidad",
                     value = ingredient.unit,
-                    options = listOf("g", "kg", "L", "ml", "uds", "cdas", "cdtas", "tazas"),
+                    options = unitOptions,
                     onValueChange = onUnitChanged,
                     modifier = Modifier.weight(1f)
                 )

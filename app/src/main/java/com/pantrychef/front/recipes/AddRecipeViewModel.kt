@@ -36,6 +36,8 @@ data class AddRecipeUiState(
     val difficulty: String = "Fácil",
     val ingredients: List<IngredientInput> = listOf(IngredientInput()),
     val steps: List<StepInput> = listOf(StepInput()),
+    val unitOptions: List<String> = emptyList(),
+    val difficultyOptions: List<String> = emptyList(),
     val nameError: String? = null,
     val prepTimeError: String? = null,
     val servingsError: String? = null,
@@ -75,7 +77,12 @@ class AddRecipeViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AddRecipeUiState())
+    private val _uiState = MutableStateFlow(
+        AddRecipeUiState(
+            unitOptions = Unit.values().map { unitToSpanish(it) },
+            difficultyOptions = Difficulty.values().map { difficultyToSpanish(it) }
+        )
+    )
     val uiState: StateFlow<AddRecipeUiState> = _uiState.asStateFlow()
 
     private val _navigation = MutableStateFlow<AddRecipeNavigation?>(null)
@@ -217,7 +224,7 @@ class AddRecipeViewModel @Inject constructor(
                         recipeId = recipeId,
                         productName = input.productName,
                         quantity = input.quantity.toFloatOrNull() ?: 0f,
-                        unit = mapSpanishToUnit(input.unit),
+                        unit = spanishToUnit(input.unit),
                         isOptional = input.isOptional
                     )
                 }
@@ -226,12 +233,7 @@ class AddRecipeViewModel @Inject constructor(
                 val steps = validSteps.map { it.instruction }
 
                 // Mapear dificultad
-                val difficulty = when (_uiState.value.difficulty) {
-                    "Fácil" -> Difficulty.EASY
-                    "Media" -> Difficulty.MEDIUM
-                    "Difícil" -> Difficulty.HARD
-                    else -> Difficulty.EASY
-                }
+                val difficulty = spanishToDifficulty(_uiState.value.difficulty)
 
                 val result = addRecipeUseCase(
                     id = recipeId,
@@ -268,7 +270,23 @@ class AddRecipeViewModel @Inject constructor(
         }
     }
 
-    private fun mapSpanishToUnit(spanish: String): Unit {
+    // ========== MAPEO DE UNIT ==========
+
+    private fun unitToSpanish(unit: Unit): String {
+        return when (unit) {
+            Unit.GRAMS -> "g"
+            Unit.KILOGRAMS -> "kg"
+            Unit.LITERS -> "L"
+            Unit.MILLILITERS -> "ml"
+            Unit.UNITS -> "uds"
+            Unit.TABLESPOONS -> "cdas"
+            Unit.CUPS -> "tazas"
+            Unit.PACKAGES -> "paquetes"
+            Unit.DOZEN -> "docena"
+        }
+    }
+
+    private fun spanishToUnit(spanish: String): Unit {
         return when (spanish) {
             "g" -> Unit.GRAMS
             "kg" -> Unit.KILOGRAMS
@@ -277,7 +295,28 @@ class AddRecipeViewModel @Inject constructor(
             "uds" -> Unit.UNITS
             "cdas" -> Unit.TABLESPOONS
             "tazas" -> Unit.CUPS
+            "paquetes" -> Unit.PACKAGES
+            "docena" -> Unit.DOZEN
             else -> Unit.GRAMS
+        }
+    }
+
+    // ========== MAPEO DE DIFFICULTY ==========
+
+    private fun difficultyToSpanish(difficulty: Difficulty): String {
+        return when (difficulty) {
+            Difficulty.EASY -> "Fácil"
+            Difficulty.MEDIUM -> "Media"
+            Difficulty.HARD -> "Difícil"
+        }
+    }
+
+    private fun spanishToDifficulty(spanish: String): Difficulty {
+        return when (spanish) {
+            "Fácil" -> Difficulty.EASY
+            "Media" -> Difficulty.MEDIUM
+            "Difícil" -> Difficulty.HARD
+            else -> Difficulty.EASY
         }
     }
 
