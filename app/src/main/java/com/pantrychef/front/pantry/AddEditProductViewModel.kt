@@ -21,11 +21,21 @@ data class AddEditProductUiState(
     val name: String = "",
     val category: String = "Lácteos",
     val quantity: String = "",
-    val unit: String = "L",
+    val unit: String = "g",
     val location: String = "Refrigerador",
     val brand: String = "",
     val expiryDate: String? = null,
     val lowStockThreshold: String = "",
+    val categoryOptions: List<String> = emptyList(),
+    val unitOptions: List<String> = emptyList(),
+    val locationOptions: List<String> = listOf(
+        "Refrigerador",
+        "Despensa",
+        "Congelador",
+        "Frutero",
+        "Especiero",
+        "Otro"
+    ),
     val nameError: String? = null,
     val quantityError: String? = null,
     val isLoading: Boolean = false,
@@ -58,7 +68,13 @@ class AddEditProductViewModel @Inject constructor(
 
     private val productId: String? = savedStateHandle["productId"]
 
-    private val _uiState = MutableStateFlow(AddEditProductUiState(productId = productId))
+    private val _uiState = MutableStateFlow(
+        AddEditProductUiState(
+            productId = productId,
+            categoryOptions = Category.values().map { categoryToSpanish(it) },
+            unitOptions = Unit.values().map { unitToSpanish(it) }
+        )
+    )
     val uiState: StateFlow<AddEditProductUiState> = _uiState.asStateFlow()
 
     private val _navigation = MutableStateFlow<AddEditProductNavigation?>(null)
@@ -124,9 +140,9 @@ class AddEditProductViewModel @Inject constructor(
                 onSuccess = { product ->
                     _uiState.update { it.copy(
                         name = product.name,
-                        category = mapCategoryToSpanish(product.category),
+                        category = categoryToSpanish(product.category),
                         quantity = product.quantity.toString(),
-                        unit = mapUnitToSpanish(product.unit),
+                        unit = unitToSpanish(product.unit),
                         location = product.location ?: "Refrigerador",
                         brand = product.brand ?: "",
                         expiryDate = null, // TODO: Add expiry date to model
@@ -163,9 +179,9 @@ class AddEditProductViewModel @Inject constructor(
             val product = Product(
                 id = productId ?: UUID.randomUUID().toString(),
                 name = _uiState.value.name,
-                category = mapSpanishToCategory(_uiState.value.category),
+                category = spanishToCategory(_uiState.value.category),
                 quantity = _uiState.value.quantity.toFloatOrNull() ?: 0f,
-                unit = mapSpanishToUnit(_uiState.value.unit),
+                unit = spanishToUnit(_uiState.value.unit),
                 lowStockThreshold = _uiState.value.lowStockThreshold.toFloatOrNull() ?: 0f,
                 location = _uiState.value.location.ifBlank { null },
                 brand = _uiState.value.brand.ifBlank { null },
@@ -204,7 +220,7 @@ class AddEditProductViewModel @Inject constructor(
             result.fold(
                 onSuccess = {
                     _uiState.update { it.copy(isLoading = false) }
-                    _navigation.value = AddEditProductNavigation.ToPantry  // ✅ CAMBIAR
+                    _navigation.value = AddEditProductNavigation.ToPantry
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(
@@ -216,7 +232,9 @@ class AddEditProductViewModel @Inject constructor(
         }
     }
 
-    private fun mapCategoryToSpanish(category: Category): String {
+    // ========== MAPEO DE CATEGORY ==========
+
+    private fun categoryToSpanish(category: Category): String {
         return when (category) {
             Category.DAIRY -> "Lácteos"
             Category.PROTEINS -> "Proteínas"
@@ -228,7 +246,7 @@ class AddEditProductViewModel @Inject constructor(
         }
     }
 
-    private fun mapSpanishToCategory(spanish: String): Category {
+    private fun spanishToCategory(spanish: String): Category {
         return when (spanish) {
             "Lácteos" -> Category.DAIRY
             "Proteínas" -> Category.PROTEINS
@@ -236,30 +254,37 @@ class AddEditProductViewModel @Inject constructor(
             "Verduras" -> Category.VEGETABLES
             "Frutas" -> Category.FRUITS
             "Condimentos" -> Category.CONDIMENTS
+            "Otros" -> Category.OTHERS
             else -> Category.OTHERS
         }
     }
 
-    private fun mapUnitToSpanish(unit: Unit): String {
+
+    private fun unitToSpanish(unit: Unit): String {
         return when (unit) {
-            Unit.LITERS -> "L"
-            Unit.KILOGRAMS -> "kg"
             Unit.GRAMS -> "g"
+            Unit.KILOGRAMS -> "kg"
+            Unit.LITERS -> "L"
+            Unit.MILLILITERS -> "ml"
             Unit.UNITS -> "uds"
+            Unit.TABLESPOONS -> "cdas"
+            Unit.CUPS -> "tazas"
             Unit.PACKAGES -> "paquetes"
-            else -> unit.name.lowercase()
+            Unit.DOZEN -> "docena"
         }
     }
 
-    private fun mapSpanishToUnit(spanish: String): Unit {
+    private fun spanishToUnit(spanish: String): Unit {
         return when (spanish) {
-            "L" -> Unit.LITERS
-            "kg" -> Unit.KILOGRAMS
             "g" -> Unit.GRAMS
+            "kg" -> Unit.KILOGRAMS
+            "L" -> Unit.LITERS
+            "ml" -> Unit.MILLILITERS
             "uds" -> Unit.UNITS
+            "cdas" -> Unit.TABLESPOONS
+            "tazas" -> Unit.CUPS
             "paquetes" -> Unit.PACKAGES
-            "latas" -> Unit.UNITS
-            "botellas" -> Unit.UNITS
+            "docena" -> Unit.DOZEN
             else -> Unit.UNITS
         }
     }

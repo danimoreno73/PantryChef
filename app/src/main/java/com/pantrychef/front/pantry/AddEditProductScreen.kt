@@ -126,15 +126,7 @@ private fun AddEditProductContent(
             DropdownSelector(
                 label = "Categoría",
                 value = uiState.category,
-                options = listOf(
-                    "Lácteos",
-                    "Proteínas",
-                    "Granos",
-                    "Verduras",
-                    "Frutas",
-                    "Condimentos",
-                    "Otros"
-                ),
+                options = uiState.categoryOptions,
                 onValueChange = { onEvent(AddEditProductEvent.CategoryChanged(it)) }
             )
 
@@ -172,15 +164,7 @@ private fun AddEditProductContent(
                 DropdownSelector(
                     label = "Unidad",
                     value = uiState.unit,
-                    options = listOf(
-                        "L",
-                        "kg",
-                        "g",
-                        "uds",
-                        "paquetes",
-                        "latas",
-                        "botellas"
-                    ),
+                    options = uiState.unitOptions,
                     onValueChange = { onEvent(AddEditProductEvent.UnitChanged(it)) },
                     modifier = Modifier.weight(1f)
                 )
@@ -206,14 +190,7 @@ private fun AddEditProductContent(
             DropdownSelector(
                 label = "Ubicación",
                 value = uiState.location,
-                options = listOf(
-                    "Refrigerador",
-                    "Despensa",
-                    "Congelador",
-                    "Frutero",
-                    "Especiero",
-                    "Otro"
-                ),
+                options = uiState.locationOptions,
                 onValueChange = { onEvent(AddEditProductEvent.LocationChanged(it)) }
             )
 
