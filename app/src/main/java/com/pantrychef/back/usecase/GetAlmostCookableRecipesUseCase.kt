@@ -1,12 +1,15 @@
 package com.pantrychef.back.usecase
 
+import android.util.Log
 import com.pantrychef.back.model.Recipe
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.RecipeRepository
 import com.pantrychef.back.utils.UnitsConverter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.forEach
 
 class GetAlmostCookableRecipesUseCase(
     private val recipeRepository: RecipeRepository,

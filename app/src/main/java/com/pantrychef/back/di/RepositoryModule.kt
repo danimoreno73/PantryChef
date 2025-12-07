@@ -44,18 +44,16 @@ object RepositoryModule {
     @Singleton
     fun provideProductRepository(
         productDao: ProductDao,
-        mockProductDataSource: MockProductDataSource
     ): ProductRepository {
-        return ProductRepositoryImpl(productDao, mockProductDataSource)
+        return ProductRepositoryImpl(productDao)
     }
 
     @Provides
     @Singleton
     fun provideRecipeRepository(
         recipeDao: RecipeDao,
-        mockRecipeDataSource: MockRecipeDataSource
     ): RecipeRepository {
-        return RecipeRepositoryImpl(recipeDao, mockRecipeDataSource)
+        return RecipeRepositoryImpl(recipeDao)
     }
 
     @Provides

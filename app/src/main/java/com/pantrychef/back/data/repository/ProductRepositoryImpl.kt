@@ -11,16 +11,11 @@ import kotlinx.coroutines.flow.map
 
 class ProductRepositoryImpl(
     private val productDao: ProductDao,
-    private val mockProductDataSource: MockProductDataSource
 ) : ProductRepository {
 
-    private var isInitialized = false
+
 
     override suspend fun getAllProducts(): Flow<List<Product>> {
-        if (!isInitialized) {
-            initializeMockData()
-        }
-
         return productDao.getAllProducts().map { entities ->
             entities.map { ProductMapper.entityToModel(it) }
         }
@@ -80,12 +75,4 @@ class ProductRepositoryImpl(
         }
     }
 
-    private suspend fun initializeMockData() {
-        val mockProducts = mockProductDataSource.loadMockProducts()
-        mockProducts.forEach { product ->
-            val entity = ProductMapper.modelToEntity(product)
-            productDao.insertProduct(entity)
-        }
-        isInitialized = true
-    }
 }

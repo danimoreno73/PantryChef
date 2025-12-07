@@ -6,9 +6,14 @@ import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.pantrychef.back.data.local.SeedDataHelper
 import com.pantrychef.back.worker.DailyReminderWorker
 import com.pantrychef.back.worker.LowStockCheckWorker
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -17,6 +22,11 @@ class PantryChefApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject
+    lateinit var seedDataHelper: SeedDataHelper  // ← AÑADIR ESTO
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
@@ -27,6 +37,12 @@ class PantryChefApp : Application(), Configuration.Provider {
 
         android.util.Log.d("PantryChefApp", "WorkManager inicializado con HiltWorkerFactory")
 
+
+        applicationScope.launch {
+            seedDataHelper.seedDatabaseIfEmpty()
+            android.util.Log.d("PantryChefApp", "Datos iniciales verificados/insertados")
+        }
+
         scheduleWorkers()
 
         android.util.Log.d("PantryChefApp", "Workers programados")
@@ -35,7 +51,7 @@ class PantryChefApp : Application(), Configuration.Provider {
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
-            .setMinimumLoggingLevel(android.util.Log.DEBUG)  // ← Para ver logs
+            .setMinimumLoggingLevel(android.util.Log.DEBUG)
             .build()
 
     private fun scheduleWorkers() {
@@ -43,7 +59,7 @@ class PantryChefApp : Application(), Configuration.Provider {
 
         // Recordatorio diario (cada 24 horas)
         val dailyReminderRequest = PeriodicWorkRequestBuilder<DailyReminderWorker>(
-            24, TimeUnit.SECONDS
+            24, TimeUnit.HOURS
         ).build()
 
         workManager.enqueueUniquePeriodicWork(
@@ -54,7 +70,7 @@ class PantryChefApp : Application(), Configuration.Provider {
 
         // Check de bajo stock (cada 12 horas)
         val lowStockCheckRequest = PeriodicWorkRequestBuilder<LowStockCheckWorker>(
-            12, TimeUnit.SECONDS
+            12, TimeUnit.HOURS  // ← Recuerda cambiar de SECONDS a HOURS
         ).build()
 
         workManager.enqueueUniquePeriodicWork(

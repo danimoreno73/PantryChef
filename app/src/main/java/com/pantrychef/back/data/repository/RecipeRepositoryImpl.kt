@@ -10,15 +10,10 @@ import kotlinx.coroutines.flow.map
 
 class RecipeRepositoryImpl(
     private val recipeDao: RecipeDao,
-    private val mockRecipeDataSource: MockRecipeDataSource
 ) : RecipeRepository {
 
-    private var isInitialized = false
 
     override suspend fun getAllRecipes(): Flow<List<Recipe>> {
-        if (!isInitialized) {
-            initializeMockData()
-        }
 
         return recipeDao.getAllRecipesWithIngredients().map { recipeWithIngredientsList ->
             recipeWithIngredientsList.map { RecipeMapper.entityToModel(it) }
@@ -79,13 +74,4 @@ class RecipeRepositoryImpl(
         }
     }
 
-    private suspend fun initializeMockData() {
-        val mockRecipes = mockRecipeDataSource.loadMockRecipes()
-        mockRecipes.forEach { recipe ->
-            val (recipeEntity, ingredientEntities) = RecipeMapper.modelToEntity(recipe)
-            recipeDao.insertRecipe(recipeEntity)
-            recipeDao.insertIngredients(ingredientEntities)
-        }
-        isInitialized = true
-    }
 }
