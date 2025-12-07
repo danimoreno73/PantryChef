@@ -30,26 +30,31 @@ object DatabaseModule {
         ).build()
     }
     @Provides
+    @Singleton
     fun provideProductDao(database: PantryDatabase): ProductDao {
         return database.productDao()
     }
 
     @Provides
+    @Singleton
     fun provideRecipeDao(database: PantryDatabase): RecipeDao {
         return database.recipeDao()
     }
 
     @Provides
+    @Singleton
     fun provideMealLogDao(database: PantryDatabase): MealLogDao {
         return database.mealLogDao()
     }
 
     @Provides
+    @Singleton
     fun provideShoppingItemDao(database: PantryDatabase): ShoppingItemDao {
         return database.shoppingItemDao()
     }
 
     @Provides
+    @Singleton
     fun provideAlertDao(database: PantryDatabase): AlertDao {
         return database.alertDao()
     }

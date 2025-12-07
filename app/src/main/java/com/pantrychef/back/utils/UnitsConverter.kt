@@ -175,15 +175,15 @@ object UnitsConverter {
 
 
         val unitName = when (displayUnit) {
-            Unit.GRAMS -> if (displayQuantity == 1f) "gram" else "grams"
-            Unit.KILOGRAMS -> if (displayQuantity == 1f) "kilogram" else "kilograms"
-            Unit.LITERS -> if (displayQuantity == 1f) "liter" else "liters"
+            Unit.GRAMS -> if (displayQuantity == 1f) "gramo" else "gramos"
+            Unit.KILOGRAMS -> if (displayQuantity == 1f) "kilogramo" else "kilogramos"
+            Unit.LITERS -> if (displayQuantity == 1f) "litro" else "litros"
             Unit.MILLILITERS -> "ml"
-            Unit.UNITS -> if (displayQuantity == 1f) "unit" else "units"
-            Unit.PACKAGES -> if (displayQuantity == 1f) "package" else "packages"
-            Unit.DOZEN -> if (displayQuantity == 1f) "dozen" else "dozen"
-            Unit.TABLESPOONS -> if (displayQuantity == 1f) "tablespoon" else "tablespoons"
-            Unit.CUPS -> if (displayQuantity == 1f) "cup" else "cups"
+            Unit.UNITS -> if (displayQuantity == 1f) "unidad" else "unidades"
+            Unit.PACKAGES -> if (displayQuantity == 1f) "paquete" else "paquetes"
+            Unit.DOZEN -> if (displayQuantity == 1f) "docena" else "docenas"
+            Unit.TABLESPOONS -> if (displayQuantity == 1f) "cucharada" else "cucharadas"
+            Unit.CUPS -> if (displayQuantity == 1f) "taza" else "tazas"
         }
 
         return "$formattedNumber $unitName"

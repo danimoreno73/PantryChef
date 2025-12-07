@@ -66,8 +66,13 @@ dependencies {
 
     // Hilt (DI)
     implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.common)
+    implementation(libs.androidx.hilt.work)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
 
     // Room (Local DB)
     implementation(libs.room.runtime)
