@@ -174,6 +174,7 @@ private fun AddRecipeContent(
                     onUnitChanged = { onEvent(AddRecipeEvent.IngredientUnitChanged(ingredient.id, it)) },
                     onOptionalToggled = { onEvent(AddRecipeEvent.IngredientOptionalToggled(ingredient.id, it)) },
                     onRemove = { onEvent(AddRecipeEvent.RemoveIngredient(ingredient.id)) },
+                    onAddAfter = { onEvent(AddRecipeEvent.AddIngredientAfter(ingredient.id)) },
                     canRemove = uiState.ingredients.size > 1
                 )
             }
@@ -215,6 +216,7 @@ private fun AddRecipeContent(
                     step = step,
                     onInstructionChanged = { onEvent(AddRecipeEvent.StepChanged(step.id, it)) },
                     onRemove = { onEvent(AddRecipeEvent.RemoveStep(step.id)) },
+                    onAddAfter = { onEvent(AddRecipeEvent.AddStepAfter(step.id)) },
                     canRemove = uiState.steps.size > 1
                 )
             }
@@ -244,6 +246,7 @@ private fun IngredientCard(
     onUnitChanged: (String) -> Unit,
     onOptionalToggled: (Boolean) -> Unit,
     onRemove: () -> Unit,
+    onAddAfter: () -> Unit,
     canRemove: Boolean
 ) {
     Surface(
@@ -308,17 +311,34 @@ private fun IngredientCard(
             }
 
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Checkbox(
-                    checked = ingredient.isOptional,
-                    onCheckedChange = onOptionalToggled
-                )
-                Text(
-                    text = "Opcional",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = ingredient.isOptional,
+                        onCheckedChange = onOptionalToggled
+                    )
+                    Text(
+                        text = "Opcional",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onAddAfter,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Añadir ingrediente después",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Añadir otro", style = MaterialTheme.typography.labelMedium)
+                }
             }
         }
     }
@@ -330,6 +350,7 @@ private fun StepCard(
     step: StepInput,
     onInstructionChanged: (String) -> Unit,
     onRemove: () -> Unit,
+    onAddAfter: () -> Unit,
     canRemove: Boolean
 ) {
     Surface(
@@ -373,6 +394,24 @@ private fun StepCard(
                 minLines = 3,
                 maxLines = 6
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                OutlinedButton(
+                    onClick = onAddAfter,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Añadir paso después",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Añadir otro", style = MaterialTheme.typography.labelMedium)
+                }
+            }
         }
     }
 }

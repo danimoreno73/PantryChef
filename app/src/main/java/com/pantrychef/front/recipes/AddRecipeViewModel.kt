@@ -62,6 +62,8 @@ sealed interface AddRecipeEvent {
 
     data class StepChanged(val id: String, val instruction: String) : AddRecipeEvent
     data class RemoveStep(val id: String) : AddRecipeEvent
+    data class AddIngredientAfter(val id: String) : AddRecipeEvent
+    data class AddStepAfter(val id: String) : AddRecipeEvent
     object AddStep : AddRecipeEvent
 
     object SaveClicked : AddRecipeEvent
@@ -173,6 +175,28 @@ class AddRecipeViewModel @Inject constructor(
             AddRecipeEvent.AddStep -> {
                 val updated = _uiState.value.steps + StepInput()
                 _uiState.update { it.copy(steps = updated) }
+            }
+
+            is AddRecipeEvent.AddIngredientAfter -> {
+                val currentList = _uiState.value.ingredients
+                val index = currentList.indexOfFirst { it.id == event.id }
+                if (index != -1) {
+                    val updated = currentList.toMutableList().apply {
+                        add(index + 1, IngredientInput())
+                    }
+                    _uiState.update { it.copy(ingredients = updated) }
+                }
+            }
+
+            is AddRecipeEvent.AddStepAfter -> {
+                val currentList = _uiState.value.steps
+                val index = currentList.indexOfFirst { it.id == event.id }
+                if (index != -1) {
+                    val updated = currentList.toMutableList().apply {
+                        add(index + 1, StepInput())
+                    }
+                    _uiState.update { it.copy(steps = updated) }
+                }
             }
 
             AddRecipeEvent.SaveClicked -> {
