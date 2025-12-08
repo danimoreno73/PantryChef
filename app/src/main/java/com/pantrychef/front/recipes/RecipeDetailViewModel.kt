@@ -3,9 +3,11 @@ package com.pantrychef.front.recipes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.repository.AuthRepository
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.RecipeRepository
 import com.pantrychef.back.utils.UnitsConverter
+import com.pantrychef.back.usecase.DeleteRecipeUseCase
 import com.pantrychef.back.usecase.RegisterMealUseCase
 import com.pantrychef.back.model.enums.MealType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +39,7 @@ data class RecipeStepUiModel(
 )
 
 data class RecipeDetailUiState(
+    val recipeId: String = "",
     val recipeTitle: String = "",
     val imageUrl: String? = null,
     val prepTime: Int = 0,
@@ -47,6 +50,8 @@ data class RecipeDetailUiState(
     val availabilityStatus: AvailabilityStatus = AvailabilityStatus.PARTIAL,
     val missingIngredients: List<String> = emptyList(),
     val isFavorite: Boolean = false,
+    val isUserRecipe: Boolean = false,
+    val showDeleteDialog: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -58,11 +63,16 @@ sealed interface RecipeDetailEvent {
     object RegisterMeal : RecipeDetailEvent
     object AddMissingToShoppingList : RecipeDetailEvent
     object SubstituteIngredients : RecipeDetailEvent
+    object EditRecipeClicked : RecipeDetailEvent
+    object DeleteRecipeClicked : RecipeDetailEvent
+    object ConfirmDelete : RecipeDetailEvent
+    object DismissDeleteDialog : RecipeDetailEvent
 }
 
 sealed interface RecipeDetailNavigation {
     object ToMealLog : RecipeDetailNavigation
     object ToShoppingList : RecipeDetailNavigation
+    data class ToEditRecipe(val recipeId: String) : RecipeDetailNavigation
     object Back : RecipeDetailNavigation
 }
 
@@ -71,7 +81,9 @@ class RecipeDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val recipeRepository: RecipeRepository,
     private val productRepository: ProductRepository,
-    private val registerMealUseCase: RegisterMealUseCase
+    private val authRepository: AuthRepository,
+    private val registerMealUseCase: RegisterMealUseCase,
+    private val deleteRecipeUseCase: DeleteRecipeUseCase
 ) : ViewModel() {
 
     private val recipeId: String = checkNotNull(savedStateHandle["recipeId"])
@@ -118,6 +130,22 @@ class RecipeDetailViewModel @Inject constructor(
             RecipeDetailEvent.SubstituteIngredients -> {
                 // TODO: Implement substitute ingredients
             }
+
+            RecipeDetailEvent.EditRecipeClicked -> {
+                _navigation.value = RecipeDetailNavigation.ToEditRecipe(recipeId)
+            }
+
+            RecipeDetailEvent.DeleteRecipeClicked -> {
+                _uiState.update { it.copy(showDeleteDialog = true) }
+            }
+
+            RecipeDetailEvent.ConfirmDelete -> {
+                deleteRecipe()
+            }
+
+            RecipeDetailEvent.DismissDeleteDialog -> {
+                _uiState.update { it.copy(showDeleteDialog = false) }
+            }
         }
     }
 
@@ -126,11 +154,18 @@ class RecipeDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
+                // Obtener usuario actual
+                val currentUserResult = authRepository.getCurrentUser()
+                val currentUserId = currentUserResult.getOrNull()?.id
+
                 // Cargar receta
                 val recipeResult = recipeRepository.getRecipeById(recipeId)
 
                 recipeResult.fold(
                     onSuccess = { recipe ->
+                        // Verificar si es receta del usuario
+                        val isUserRecipe = !recipe.isPublic || recipe.createdBy == currentUserId
+
                         // Cargar productos para verificar disponibilidad
                         val products = productRepository.getAllProducts().first()
 
@@ -151,7 +186,7 @@ class RecipeDetailViewModel @Inject constructor(
                             IngredientItemUiModel(
                                 id = ingredient.id,
                                 name = ingredient.productName,
-                                quantity = "${ingredient.quantity} ${ingredient.unit.name.lowercase()}",
+                                quantity = formatQuantity(ingredient.quantity, ingredient.unit.name),
                                 isAvailable = isAvailable,
                                 isChecked = false
                             )
@@ -174,11 +209,12 @@ class RecipeDetailViewModel @Inject constructor(
                             RecipeStepUiModel(
                                 number = index + 1,
                                 instruction = instruction,
-                                duration = null // TODO: Extraer duración del texto si está
+                                duration = null
                             )
                         }
 
                         _uiState.update { it.copy(
+                            recipeId = recipe.id,
                             recipeTitle = recipe.name,
                             imageUrl = recipe.imageUrl,
                             prepTime = recipe.prepTimeMinutes,
@@ -193,7 +229,8 @@ class RecipeDetailViewModel @Inject constructor(
                             steps = steps,
                             availabilityStatus = availabilityStatus,
                             missingIngredients = missingIngredients,
-                            isFavorite = false, // TODO: Cargar de preferencias
+                            isFavorite = false,
+                            isUserRecipe = isUserRecipe,
                             isLoading = false
                         )}
                     },
@@ -213,6 +250,31 @@ class RecipeDetailViewModel @Inject constructor(
         }
     }
 
+    private fun deleteRecipe() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(
+                isLoading = true,
+                showDeleteDialog = false,
+                error = null
+            )}
+
+            val result = deleteRecipeUseCase(recipeId)
+
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    _navigation.value = RecipeDetailNavigation.Back
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = error.message ?: "Error al eliminar receta"
+                    )}
+                }
+            )
+        }
+    }
+
     private fun cookRecipeNow() {
         val recipeId = recipeId
         val recipeName = _uiState.value.recipeTitle
@@ -221,8 +283,6 @@ class RecipeDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            // Registrar comida como LUNCH por defecto
-            // TODO: Mostrar dialog para elegir tipo de comida y porciones
             val result = registerMealUseCase(
                 recipeId = recipeId,
                 recipeName = recipeName,
@@ -246,7 +306,20 @@ class RecipeDetailViewModel @Inject constructor(
         }
     }
 
+    private fun formatQuantity(quantity: Float, unit: String): String {
+        val formatted = if (quantity % 1.0f == 0.0f) {
+            quantity.toInt().toString()
+        } else {
+            String.format("%.1f", quantity)
+        }
+        return "$formatted ${unit.lowercase()}"
+    }
+
     fun clearNavigation() {
         _navigation.value = null
+    }
+
+    fun reloadRecipe() {
+        loadRecipeDetail()
     }
 }

@@ -12,6 +12,7 @@ import com.pantrychef.back.usecase.BuildSuggestedShoppingListUseCase
 import com.pantrychef.back.usecase.ComputeLowStockAlertsUseCase
 import com.pantrychef.back.usecase.DecrementIngredientsStockUseCase
 import com.pantrychef.back.usecase.DeleteProductUseCase
+import com.pantrychef.back.usecase.DeleteRecipeUseCase
 import com.pantrychef.back.usecase.GetAllProductsUseCase
 import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetCookableRecipesUseCase
@@ -185,5 +186,13 @@ object UseCaseModule {
         authRepository: AuthRepository
     ): RegisterUserUseCase{
         return RegisterUserUseCase(authRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDeleteRecipeUseCase(
+        recipeRepository: RecipeRepository
+    ): DeleteRecipeUseCase {
+        return DeleteRecipeUseCase(recipeRepository)
     }
 }

@@ -7,6 +7,7 @@ object Routes {
     const val PANTRY = "pantry"
     const val RECIPES = "recipes"
     const val RECIPE_DETAIL = "recipes/{recipeId}"
+    const val RECIPES_EDIT = "recipes/edit/{recipeId}"
     const val PRODUCT_DETAIL = "products/{productId}"
     const val SHOPPING_LIST = "shopping"
     const val MEAL_LOG = "meallog"

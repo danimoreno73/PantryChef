@@ -22,6 +22,7 @@ import com.pantrychef.front.pantry.AddEditProductScreen
 import com.pantrychef.front.pantry.PantryScreen
 import com.pantrychef.front.pantry.ProductDetailScreen
 import com.pantrychef.front.recipes.AddRecipeScreen
+import com.pantrychef.front.recipes.EditRecipeScreen
 import com.pantrychef.front.recipes.RecipeDetailScreen
 import com.pantrychef.front.recipes.RecipesScreen
 import com.pantrychef.front.settings.SettingsScreen
@@ -119,6 +120,17 @@ fun NavGraph(
             ) { backStackEntry ->
                 val recipeId = backStackEntry.arguments?.getString("recipeId") ?: return@composable
                 RecipeDetailScreen(
+                    recipeId = recipeId,
+                    navController = navController
+                )
+            }
+
+            composable(
+                route = Routes.RECIPES_EDIT,
+                arguments = listOf(navArgument("recipeId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val recipeId = backStackEntry.arguments?.getString("recipeId") ?: return@composable
+                EditRecipeScreen(
                     recipeId = recipeId,
                     navController = navController
                 )
