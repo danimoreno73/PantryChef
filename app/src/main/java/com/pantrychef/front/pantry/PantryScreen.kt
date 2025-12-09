@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +41,7 @@ fun PantryScreen(
                 viewModel.clearNavigation()
             }
             PantryNavigation.ToAddProduct -> {
-                navController.navigate(Routes.PANTRY_ADD)  // <- Cambiar aquí
+                navController.navigate(Routes.PANTRY_ADD)
                 viewModel.clearNavigation()
             }
             null -> { /* No navigation */ }
@@ -113,12 +112,12 @@ private fun PantryContent(
 
             // Category filters
             ScrollableTabRow(
-                selectedTabIndex = uiState.selectedCategory.ordinal,
+                selectedTabIndex = uiState.categoryOptions.indexOf(uiState.selectedCategory),
                 modifier = Modifier.fillMaxWidth(),
                 containerColor = MaterialTheme.colorScheme.background,
                 edgePadding = 16.dp
             ) {
-                ProductCategory.values().forEach { category ->
+                uiState.categoryOptions.forEach { category ->
                     val isSelected = uiState.selectedCategory == category
 
                     Tab(
@@ -131,16 +130,7 @@ private fun PantryContent(
                             modifier = Modifier.padding(vertical = 8.dp)
                         ) {
                             Text(
-                                text = when (category) {
-                                    ProductCategory.ALL -> "Todos"
-                                    ProductCategory.DAIRY -> "Lácteos"
-                                    ProductCategory.PROTEINS -> "Proteínas"
-                                    ProductCategory.GRAINS -> "Granos"
-                                    ProductCategory.VEGETABLES -> "Verduras"
-                                    ProductCategory.FRUITS -> "Frutas"
-                                    ProductCategory.CONDIMENTS -> "Condimentos"
-                                    ProductCategory.OTHERS -> "Otros"
-                                },
+                                text = category,
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected)
@@ -216,7 +206,9 @@ private fun PantryContent(
 private fun PantryScreenPreview() {
     PantryChefTheme {
         PantryContent(
-            uiState = PantryUiState(),
+            uiState = PantryUiState(
+                categoryOptions = listOf("Todos", "Lácteos", "Proteínas", "Granos", "Verduras", "Frutas", "Condimentos", "Otros")
+            ),
             onEvent = {}
         )
     }

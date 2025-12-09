@@ -24,17 +24,6 @@ data class ProductCardUiModel(
     val alertLevel: ProductAlertLevel
 )
 
-enum class ProductCategory {
-    ALL,
-    DAIRY,
-    PROTEINS,
-    GRAINS,
-    VEGETABLES,
-    FRUITS,
-    CONDIMENTS,
-    OTHERS
-}
-
 enum class SortOption {
     NAME,
     QUANTITY,
@@ -46,7 +35,8 @@ data class PantryUiState(
     val products: List<ProductCardUiModel> = emptyList(),
     val filteredProducts: List<ProductCardUiModel> = emptyList(),
     val searchQuery: String = "",
-    val selectedCategory: ProductCategory = ProductCategory.ALL,
+    val selectedCategory: String = "Todos",
+    val categoryOptions: List<String> = emptyList(),
     val sortBy: SortOption = SortOption.NAME,
     val isLoading: Boolean = false,
     val error: String? = null
@@ -54,7 +44,7 @@ data class PantryUiState(
 
 sealed interface PantryEvent {
     data class SearchQueryChanged(val query: String) : PantryEvent
-    data class CategorySelected(val category: ProductCategory) : PantryEvent
+    data class CategorySelected(val category: String) : PantryEvent
     data class SortOptionChanged(val sortOption: SortOption) : PantryEvent
     data class ProductClicked(val productId: String) : PantryEvent
     object AddProductClicked : PantryEvent
@@ -71,7 +61,11 @@ class PantryViewModel @Inject constructor(
     private val productRepository: ProductRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PantryUiState())
+    private val _uiState = MutableStateFlow(
+        PantryUiState(
+            categoryOptions = listOf("Todos") + Category.values().map { categoryToSpanish(it) }
+        )
+    )
     val uiState: StateFlow<PantryUiState> = _uiState.asStateFlow()
 
     private val _navigation = MutableStateFlow<PantryNavigation?>(null)
@@ -143,18 +137,10 @@ class PantryViewModel @Inject constructor(
 
         // 1. Filtrar por categoría
         val selectedCategory = _uiState.value.selectedCategory
-        if (selectedCategory != ProductCategory.ALL) {
-            val categoryName = when (selectedCategory) {
-                ProductCategory.DAIRY -> "DAIRY"
-                ProductCategory.PROTEINS -> "PROTEINS"
-                ProductCategory.GRAINS -> "GRAINS"
-                ProductCategory.VEGETABLES -> "VEGETABLES"
-                ProductCategory.FRUITS -> "FRUITS"
-                ProductCategory.CONDIMENTS -> "CONDIMENTS"
-                ProductCategory.OTHERS -> "OTHERS"
-                ProductCategory.ALL -> ""
-            }
-            filtered = filtered.filter { it.category == categoryName }
+        if (selectedCategory != "Todos") {
+            // Convertir español a Category enum
+            val category = spanishToCategory(selectedCategory)
+            filtered = filtered.filter { it.category == category.name }
         }
 
         // 2. Filtrar por búsqueda
@@ -198,6 +184,33 @@ class PantryViewModel @Inject constructor(
             imageUrl = null,
             alertLevel = alertLevel
         )
+    }
+
+    // ========== MAPEO DE CATEGORY ==========
+
+    private fun categoryToSpanish(category: Category): String {
+        return when (category) {
+            Category.DAIRY -> "Lácteos"
+            Category.PROTEINS -> "Proteínas"
+            Category.GRAINS -> "Granos"
+            Category.VEGETABLES -> "Verduras"
+            Category.FRUITS -> "Frutas"
+            Category.CONDIMENTS -> "Condimentos"
+            Category.OTHERS -> "Otros"
+        }
+    }
+
+    private fun spanishToCategory(spanish: String): Category {
+        return when (spanish) {
+            "Lácteos" -> Category.DAIRY
+            "Proteínas" -> Category.PROTEINS
+            "Granos" -> Category.GRAINS
+            "Verduras" -> Category.VEGETABLES
+            "Frutas" -> Category.FRUITS
+            "Condimentos" -> Category.CONDIMENTS
+            "Otros" -> Category.OTHERS
+            else -> Category.OTHERS
+        }
     }
 
     fun clearNavigation() {
