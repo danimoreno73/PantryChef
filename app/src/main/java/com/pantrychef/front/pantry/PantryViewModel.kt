@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.model.Product
 import com.pantrychef.back.model.enums.Category
+import com.pantrychef.back.utils.UnitsConverter
 import com.pantrychef.front.components.ProductAlertLevel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -178,7 +179,7 @@ class PantryViewModel @Inject constructor(
         return ProductCardUiModel(
             id = product.id,
             name = product.name,
-            quantity = "${product.quantity} ${product.unit.name.lowercase()}",
+            quantity = UnitsConverter.formatQuantityShort(product.quantity, product.unit),
             category = product.category.name,
             location = product.location ?: "Sin ubicación",
             imageUrl = null,

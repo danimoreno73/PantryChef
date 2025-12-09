@@ -8,6 +8,7 @@ import com.pantrychef.back.model.enums.Source
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.ShoppingListRepository
 import com.pantrychef.back.model.Product
+import com.pantrychef.back.utils.UnitsConverter
 import com.pantrychef.front.components.BadgeSeverity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -143,7 +144,7 @@ class ProductDetailViewModel @Inject constructor(
 
                     // Calcular cantidad sugerida
                     val quantityNeeded = (product.lowStockThreshold * 2 - product.quantity).coerceAtLeast(0f)
-                    val suggestedQuantity = formatQuantity(quantityNeeded, product.unit.name.lowercase())
+                    val suggestedQuantity = UnitsConverter.formatQuantityShort(quantityNeeded, product.unit)
 
                     _uiState.update { it.copy(
                         productName = product.name,
@@ -154,7 +155,7 @@ class ProductDetailViewModel @Inject constructor(
                         lowStockThreshold = product.lowStockThreshold,
                         suggestedQuantity = suggestedQuantity,
                         alertStatus = alertStatus,
-                        recipeSuggestions = emptyList(), // TODO: Load from recipe repository
+                        recipeSuggestions = emptyList(),
                         isLoading = false
                     )}
                 },
@@ -265,14 +266,6 @@ class ProductDetailViewModel @Inject constructor(
                     )}
                 }
             )
-        }
-    }
-
-    private fun formatQuantity(quantity: Float, unit: String): String {
-        return when {
-            quantity == 0f -> "0 $unit"
-            quantity == quantity.toInt().toFloat() -> "${quantity.toInt()} $unit"
-            else -> "${"%.1f".format(quantity)} $unit"
         }
     }
 

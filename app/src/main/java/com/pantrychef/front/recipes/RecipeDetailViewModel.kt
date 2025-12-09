@@ -186,7 +186,7 @@ class RecipeDetailViewModel @Inject constructor(
                             IngredientItemUiModel(
                                 id = ingredient.id,
                                 name = ingredient.productName,
-                                quantity = formatQuantity(ingredient.quantity, ingredient.unit.name),
+                                quantity = UnitsConverter.formatQuantityShort(ingredient.quantity, ingredient.unit),
                                 isAvailable = isAvailable,
                                 isChecked = false
                             )
@@ -304,15 +304,6 @@ class RecipeDetailViewModel @Inject constructor(
                 }
             )
         }
-    }
-
-    private fun formatQuantity(quantity: Float, unit: String): String {
-        val formatted = if (quantity % 1.0f == 0.0f) {
-            quantity.toInt().toString()
-        } else {
-            String.format("%.1f", quantity)
-        }
-        return "$formatted ${unit.lowercase()}"
     }
 
     fun clearNavigation() {

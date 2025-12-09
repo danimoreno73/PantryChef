@@ -188,4 +188,43 @@ object UnitsConverter {
 
         return "$formattedNumber $unitName"
     }
+
+
+    /**
+     * Formatea una cantidad con su unidad en formato CORTO para UI
+     * Usa abreviaciones estándar: kg, g, L, ml, uds, etc.
+     *
+     * Ejemplos:
+     * - 1.0 kg → "1 kg"
+     * - 0.5 L → "0.5 L"
+     * - 2.5 g → "2.5 g"
+     * - 0.0 ml → "0 ml"
+     *
+     * @param quantity La cantidad a formatear
+     * @param unit El enum Unit
+     * @return String formateado "cantidad abreviación"
+     */
+    fun formatQuantityShort(quantity: Float, unit: Unit): String {
+        // Formatear número
+        val formattedNumber = when {
+            quantity == 0f -> "0"
+            quantity % 1f == 0f -> quantity.toInt().toString()
+            else -> String.format("%.1f", quantity)
+        }
+
+        // Abreviación de unidad
+        val unitAbbr = when (unit) {
+            Unit.GRAMS -> "g"
+            Unit.KILOGRAMS -> "kg"
+            Unit.LITERS -> "L"
+            Unit.MILLILITERS -> "ml"
+            Unit.UNITS -> "uds"
+            Unit.PACKAGES -> "paquetes"
+            Unit.DOZEN -> "docena"
+            Unit.TABLESPOONS -> "cdas"
+            Unit.CUPS -> "tazas"
+        }
+
+        return "$formattedNumber $unitAbbr"
+    }
 }

@@ -7,6 +7,8 @@ import com.pantrychef.back.model.Recipe
 import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetLowStockProductsUseCase
+import com.pantrychef.back.usecase.BuildSuggestedShoppingListUseCase
+import com.pantrychef.back.utils.UnitsConverter
 import com.pantrychef.front.components.BadgeSeverity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +17,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.pantrychef.back.usecase.BuildSuggestedShoppingListUseCase
 
 data class AlertItem(
     val id: String,
@@ -81,7 +82,7 @@ class HomeViewModel @Inject constructor(
     private val getLowStockProductsUseCase: GetLowStockProductsUseCase,
     private val getCookableRecipesUseCase: GetCookableRecipesUseCase,
     private val getAlmostCookableRecipesUseCase: GetAlmostCookableRecipesUseCase,
-    private val buildSuggestedShoppingListUseCase: BuildSuggestedShoppingListUseCase  // <- AÑADIR
+    private val buildSuggestedShoppingListUseCase: BuildSuggestedShoppingListUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -183,9 +184,9 @@ class HomeViewModel @Inject constructor(
                 },
                 categoryInfo = "${product.category.name} • ${product.location ?: "Sin ubicación"}",
                 severity = when {
-                    product.quantity == 0f -> BadgeSeverity.CRITICAL  // ✅ Rojo
-                    product.quantity < product.lowStockThreshold * 0.5f -> BadgeSeverity.URGENT  // Naranja
-                    else -> BadgeSeverity.WARNING  // Amarillo
+                    product.quantity == 0f -> BadgeSeverity.CRITICAL
+                    product.quantity < product.lowStockThreshold * 0.5f -> BadgeSeverity.URGENT
+                    else -> BadgeSeverity.WARNING
                 },
                 actionLabel = "Reponer"
             )
@@ -196,7 +197,7 @@ class HomeViewModel @Inject constructor(
             ShoppingPreviewItem(
                 id = product.id,
                 name = product.name,
-                quantity = formatQuantity(quantityNeeded, product.unit.name.lowercase()),
+                quantity = UnitsConverter.formatQuantityShort(quantityNeeded, product.unit),
                 source = "Sugerido"
             )
         }.take(2)
@@ -247,14 +248,6 @@ class HomeViewModel @Inject constructor(
             almostCookableCount = almostCookableList.size,
             almostCookableRecipes = almostCookableRecipes
         )}
-    }
-
-    private fun formatQuantity(quantity: Float, unit: String): String {
-        return when {
-            quantity == 0f -> "0 $unit"
-            quantity == quantity.toInt().toFloat() -> "${quantity.toInt()} $unit"
-            else -> "${"%.1f".format(quantity)} $unit"
-        }
     }
 
     fun clearNavigation() {
