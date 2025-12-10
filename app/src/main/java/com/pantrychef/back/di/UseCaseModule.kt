@@ -1,5 +1,6 @@
 package com.pantrychef.back.di
 
+import com.pantrychef.back.model.Product
 import com.pantrychef.back.repository.AlertRepository
 import com.pantrychef.back.repository.AuthRepository
 import com.pantrychef.back.repository.MealLogRepository
@@ -17,6 +18,8 @@ import com.pantrychef.back.usecase.GetAllProductsUseCase
 import com.pantrychef.back.usecase.GetAlmostCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetCookableRecipesUseCase
 import com.pantrychef.back.usecase.GetLowStockProductsUseCase
+import com.pantrychef.back.usecase.GetProductsByCategoryUseCase
+import com.pantrychef.back.usecase.GetRecipesByIngredientUseCase
 import com.pantrychef.back.usecase.LogOutUserUseCase
 import com.pantrychef.back.usecase.LoginUserUseCase
 import com.pantrychef.back.usecase.RegisterMealUseCase
@@ -27,6 +30,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Singleton
 
 @Module
@@ -194,5 +198,21 @@ object UseCaseModule {
         recipeRepository: RecipeRepository
     ): DeleteRecipeUseCase {
         return DeleteRecipeUseCase(recipeRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetProductsByCategoryUseCase(
+        productRepository: ProductRepository
+    ): GetProductsByCategoryUseCase{
+        return GetProductsByCategoryUseCase(productRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetRecipesByIngredientsUseCase(
+        recipeRepository: RecipeRepository
+    ): GetRecipesByIngredientUseCase{
+        return GetRecipesByIngredientUseCase(recipeRepository)
     }
 }
