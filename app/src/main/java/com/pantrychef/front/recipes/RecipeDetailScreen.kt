@@ -16,6 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.pantrychef.back.model.enums.MealType
 import com.pantrychef.front.components.*
 import com.pantrychef.front.navigation.Routes
 import com.pantrychef.front.theme.PantryChefTheme
@@ -353,6 +357,15 @@ private fun RecipeDetailContent(
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+        // Dialog de tipo de comida
+        if (uiState.showMealTypeDialog) {
+            MealTypeDialog(
+                onDismiss = { onEvent(RecipeDetailEvent.DismissMealTypeDialog) },
+                onConfirm = { mealType ->
+                    onEvent(RecipeDetailEvent.ConfirmMealType(mealType))
+                }
+            )
+        }
 
         // Dialog de confirmación para eliminar
         if (uiState.showDeleteDialog) {
@@ -534,6 +547,105 @@ private fun AfterCookingCard(
             }
         }
     }
+}
+
+@Composable
+private fun MealTypeDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (MealType) -> Unit
+) {
+    var selectedMealType by remember { mutableStateOf(MealType.LUNCH) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "¿Cuándo vas a comer esto?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    "Selecciona el tipo de comida:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                MealType.values().forEach { mealType ->
+                    val (emoji, label) = when (mealType) {
+                        MealType.BREAKFAST -> "🌅" to "Desayuno"
+                        MealType.LUNCH -> "🍽️" to "Almuerzo"
+                        MealType.DINNER -> "🌙" to "Cena"
+                        MealType.SNACK -> "🍿" to "Snack"
+                    }
+
+                    Surface(
+                        onClick = { selectedMealType = mealType },
+                        color = if (selectedMealType == mealType)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = emoji,
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = if (selectedMealType == mealType)
+                                    FontWeight.Bold
+                                else
+                                    FontWeight.Normal,
+                                color = if (selectedMealType == mealType)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            if (selectedMealType == mealType) {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = "Seleccionado",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(selectedMealType) }
+            ) {
+                Text("Registrar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 @Preview(showBackground = true, heightDp = 2000)

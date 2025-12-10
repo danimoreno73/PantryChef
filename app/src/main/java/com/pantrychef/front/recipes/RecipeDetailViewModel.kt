@@ -52,6 +52,7 @@ data class RecipeDetailUiState(
     val isFavorite: Boolean = false,
     val isUserRecipe: Boolean = false,
     val showDeleteDialog: Boolean = false,
+    val showMealTypeDialog: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -61,6 +62,8 @@ sealed interface RecipeDetailEvent {
     data class IngredientChecked(val ingredientId: String, val isChecked: Boolean) : RecipeDetailEvent
     object CookNowClicked : RecipeDetailEvent
     object RegisterMeal : RecipeDetailEvent
+    data class ConfirmMealType(val mealType: MealType) : RecipeDetailEvent
+    object DismissMealTypeDialog : RecipeDetailEvent
     object AddMissingToShoppingList : RecipeDetailEvent
     object SubstituteIngredients : RecipeDetailEvent
     object EditRecipeClicked : RecipeDetailEvent
@@ -116,11 +119,19 @@ class RecipeDetailViewModel @Inject constructor(
             }
 
             RecipeDetailEvent.CookNowClicked -> {
-                cookRecipeNow()
+                _uiState.update { it.copy(showMealTypeDialog = true) }
             }
 
             RecipeDetailEvent.RegisterMeal -> {
-                cookRecipeNow()
+                _uiState.update { it.copy(showMealTypeDialog = true) }
+            }
+
+            is RecipeDetailEvent.ConfirmMealType -> {
+                registerMealWithType(event.mealType)
+            }
+
+            RecipeDetailEvent.DismissMealTypeDialog -> {
+                _uiState.update { it.copy(showMealTypeDialog = false) }
             }
 
             RecipeDetailEvent.AddMissingToShoppingList -> {
@@ -275,18 +286,22 @@ class RecipeDetailViewModel @Inject constructor(
         }
     }
 
-    private fun cookRecipeNow() {
+    private fun registerMealWithType(mealType: MealType) {
         val recipeId = recipeId
         val recipeName = _uiState.value.recipeTitle
         val servings = _uiState.value.servings
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(
+                isLoading = true,
+                showMealTypeDialog = false,
+                error = null
+            )}
 
             val result = registerMealUseCase(
                 recipeId = recipeId,
                 recipeName = recipeName,
-                mealType = MealType.LUNCH,
+                mealType = mealType,
                 servings = servings,
                 caloriesEstimate = null
             )
