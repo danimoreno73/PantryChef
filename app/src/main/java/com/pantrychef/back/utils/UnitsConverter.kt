@@ -227,4 +227,18 @@ object UnitsConverter {
 
         return "$formattedNumber $unitAbbr"
     }
+
+    fun getUnitAbbreviation(unit: Unit): String {
+        return when (unit) {
+            Unit.GRAMS -> "g"
+            Unit.KILOGRAMS -> "kg"
+            Unit.LITERS -> "L"
+            Unit.MILLILITERS -> "ml"
+            Unit.UNITS -> "uds"
+            Unit.PACKAGES -> "paquetes"
+            Unit.DOZEN -> "docena"
+            Unit.TABLESPOONS -> "cdas"
+            Unit.CUPS -> "tazas"
+        }
+    }
 }

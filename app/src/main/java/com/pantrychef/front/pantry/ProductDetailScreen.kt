@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -14,16 +15,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.pantrychef.front.components.*
 import com.pantrychef.front.navigation.Routes
 import com.pantrychef.front.theme.PantryChefTheme
-import com.pantrychef.front.theme.PrimaryGreenLight
 import com.pantrychef.front.theme.TextSecondary
 
 @Composable
@@ -35,14 +37,13 @@ fun ProductDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navigation by viewModel.navigation.collectAsStateWithLifecycle()
 
-    // Recargar cuando vuelves a esta pantalla
-    val navBackStackEntry = navController.currentBackStackEntry
-    LaunchedEffect(navBackStackEntry) {
-        val savedStateHandle = navBackStackEntry?.savedStateHandle
-        savedStateHandle?.getStateFlow("product_updated", false)?.collect { updated ->
-            if (updated) {
+    // Recargar cuando vuelves de edición
+    LaunchedEffect(Unit) {
+        val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+        savedStateHandle?.getLiveData<Boolean>("product_updated")?.observeForever { updated ->
+            if (updated == true) {
                 viewModel.refresh()
-                savedStateHandle["product_updated"] = false
+                savedStateHandle.remove<Boolean>("product_updated")
             }
         }
     }
@@ -107,6 +108,13 @@ private fun ProductDetailContent(
                         contentDescription = "Editar"
                     )
                 }
+                IconButton(onClick = { onEvent(ProductDetailEvent.DeleteClicked) }) {
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         )
 
@@ -114,302 +122,359 @@ private fun ProductDetailContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
         ) {
-            // Alert Status Banner
-            if (uiState.alertStatus != null) {
-                Surface(
-                    color = when (uiState.alertStatus.severity) {
-                        BadgeSeverity.URGENT -> com.pantrychef.front.theme.BadgeUrgent.copy(alpha = 0.15f)
-                        BadgeSeverity.WARNING -> com.pantrychef.front.theme.BadgeWarning.copy(alpha = 0.15f)
-                        else -> PrimaryGreenLight
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+            // Hero Image Placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = uiState.categoryEmoji,
+                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 80.sp)
+                )
+            }
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Category Badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    StatusBadge(
+                        text = uiState.category,
+                        severity = BadgeSeverity.INFO
+                    )
+                    Text(
+                        text = "•",
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = uiState.location,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
+                }
+
+                // Alert Status (si aplica)
+                if (uiState.alertStatus != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Surface(
+                        color = when (uiState.alertStatus.severity) {
+                            BadgeSeverity.CRITICAL -> com.pantrychef.front.theme.BadgeCritical.copy(alpha = 0.15f)
+                            BadgeSeverity.URGENT -> com.pantrychef.front.theme.BadgeUrgent.copy(alpha = 0.15f)
+                            BadgeSeverity.WARNING -> com.pantrychef.front.theme.BadgeWarning.copy(alpha = 0.15f)
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Estado de alerta",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = TextSecondary
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
                             Text(
                                 text = uiState.alertStatus.message,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
                             )
-                            if (uiState.alertStatus.daysUntilExpiry != null) {
-                                Text(
-                                    text = "Categoría: ${uiState.location} • Última compra: hace 10 días",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary
-                                )
-                            }
+                            StatusBadge(
+                                text = when (uiState.alertStatus.severity) {
+                                    BadgeSeverity.CRITICAL -> "Urgente"
+                                    BadgeSeverity.URGENT -> "Crítico"
+                                    BadgeSeverity.WARNING -> "Bajo"
+                                    else -> ""
+                                },
+                                severity = uiState.alertStatus.severity
+                            )
                         }
-
-                        StatusBadge(
-                            text = uiState.alertStatus.actionLabel,
-                            severity = uiState.alertStatus.severity
-                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-            }
 
-            // Cantidad actual
-            Text(
-                text = "Cantidad actual",
-                style = MaterialTheme.typography.labelLarge,
-                color = TextSecondary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                // Cantidad Actual
                 Text(
-                    text = "${uiState.currentQuantity} ${uiState.unit}",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Ajustar cantidad
-            Surface(
-                color = PrimaryGreenLight,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Ajustar cantidad",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        IconButton(
-                            onClick = { onEvent(ProductDetailEvent.DecreaseQuantity) },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            Text("-", style = MaterialTheme.typography.titleLarge)
-                        }
-
-                        Text(
-                            text = "${uiState.currentQuantity} ${uiState.unit}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.widthIn(min = 60.dp)
-                        )
-
-                        IconButton(
-                            onClick = { onEvent(ProductDetailEvent.IncreaseQuantity) },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Text("+", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimary)
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Acciones rápidas
-            Text(
-                text = "Acciones rápidas",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            QuickActionCard(
-                title = "Añadir a la lista de compra",
-                subtitle = "Se sugiere ${uiState.suggestedQuantity} para reponer",
-                actionLabel = "+${uiState.suggestedQuantity}",
-                onClick = { onEvent(ProductDetailEvent.AddToShoppingList) }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            QuickActionCard(
-                title = "Eliminar producto",
-                subtitle = "Eliminar del inventario",
-                actionLabel = "Eliminar",
-                onClick = { onEvent(ProductDetailEvent.DeleteProduct) },
-                isDestructive = true
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Usar antes de que venza (solo si hay recetas)
-            if (uiState.recipeSuggestions.isNotEmpty()) {
-                Text(
-                    text = "Usar antes de que venza",
+                    text = "Cantidad actual",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                uiState.recipeSuggestions.forEach { recipe ->
-                    RecipeSuggestionCard(
-                        recipe = recipe,
-                        onClick = { onEvent(ProductDetailEvent.RecipeClicked(recipe.id)) }
+                // Ajustador de cantidad
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = { onEvent(ProductDetailEvent.DecreaseQuantity) },
+                                modifier = Modifier.size(56.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Text(
+                                    text = "−",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.widthIn(min = 120.dp)
+                            ) {
+                                Text(
+                                    text = "${uiState.currentQuantity}",
+                                    style = MaterialTheme.typography.displaySmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = uiState.unit,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = TextSecondary
+                                )
+                            }
+
+                            IconButton(
+                                onClick = { onEvent(ProductDetailEvent.IncreaseQuantity) },
+                                modifier = Modifier.size(56.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text(
+                                    text = "+",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        // Botón guardar (solo si hay cambios)
+                        if (uiState.hasUnsavedChanges) {
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            PrimaryButton(
+                                text = "✓ Guardar cambios",
+                                onClick = { onEvent(ProductDetailEvent.SaveQuantityChanges) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+
+                // Sugerencia de reposición (si aplica)
+                if (uiState.suggestedAmount > 0) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "Sugerencia de reposición",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Surface(
+                        onClick = { onEvent(ProductDetailEvent.AddToShoppingList) },
+                        color = com.pantrychef.front.theme.PrimaryGreenLight,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Añadir ${uiState.suggestedQuantity} a lista de compra",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Para alcanzar el nivel óptimo de stock",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "Añadir a Lista →",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Recetas que usan este producto
+                if (uiState.recipeSuggestions.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "Recetas que usan este producto",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    uiState.recipeSuggestions.forEach { recipe ->
+                        RecipeCard(
+                            recipe = recipe,
+                            onClick = { onEvent(ProductDetailEvent.RecipeClicked(recipe.id)) }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-            }
 
-            // Detalles de despensa
-            Text(
-                text = "Detalles de despensa",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                // Información
+                Text(
+                    text = "Información",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                InfoRow(label = "Categoría", value = uiState.category)
+                InfoRow(label = "Marca", value = uiState.brand)
+                InfoRow(label = "Ubicación", value = uiState.location)
+                InfoRow(label = "Umbral bajo", value = "${uiState.lowStockThreshold} ${uiState.unit}")
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Acciones
+                Text(
+                    text = "Acciones",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Surface(
+                    onClick = { onEvent(ProductDetailEvent.DeleteClicked) },
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Eliminar producto",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "Esta acción no se puede deshacer",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.error,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "Eliminar",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+
+        // Dialog de confirmación
+        if (uiState.showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { onEvent(ProductDetailEvent.DismissDeleteDialog) },
+                title = { Text("¿Eliminar producto?") },
+                text = { Text("Esta acción no se puede deshacer. El producto se eliminará permanentemente de tu despensa.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = { onEvent(ProductDetailEvent.ConfirmDelete) },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Eliminar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onEvent(ProductDetailEvent.DismissDeleteDialog) }) {
+                        Text("Cancelar")
+                    }
+                }
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            DetailRow(label = "Ubicación", value = uiState.location)
-            DetailRow(label = "Marca", value = uiState.brand)
-            DetailRow(label = "Límite bajo", value = "${uiState.lowStockThreshold} ${uiState.unit}")
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Action buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                PrimaryButton(
-                    text = "Añadir a Lista",
-                    onClick = { onEvent(ProductDetailEvent.AddToShoppingList) },
-                    modifier = Modifier.weight(1f)
-                )
-
-                SecondaryButton(
-                    text = "Actualizar cantidad",
-                    onClick = { onEvent(ProductDetailEvent.UpdateQuantity) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
-private fun QuickActionCard(
-    title: String,
-    subtitle: String,
-    actionLabel: String,
-    onClick: () -> Unit,
-    isDestructive: Boolean = false
+private fun RecipeCard(
+    recipe: RecipeSuggestion,
+    onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
-        color = if (isDestructive)
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-        else
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isDestructive)
-                        MaterialTheme.colorScheme.error
-                    else
-                        MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
-            }
-
-            Surface(
-                color = if (isDestructive)
-                    MaterialTheme.colorScheme.error
-                else
-                    MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = actionLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecipeSuggestionCard(
-    recipe: RecipeSuggestion,
-    onClick: () -> Unit
-) {
-    val severity = if (recipe.status.contains("Cocinable", ignoreCase = true)) {
-        BadgeSeverity.SUCCESS
-    } else {
-        BadgeSeverity.WARNING
-    }
-
-    Surface(
-        onClick = onClick,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "☕",
-                style = MaterialTheme.typography.headlineMedium,
+            // Emoji placeholder
+            Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .wrapContentSize(Alignment.Center)
-            )
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(8.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "🍽️",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -425,17 +490,12 @@ private fun RecipeSuggestionCard(
                     color = TextSecondary
                 )
             }
-
-            StatusBadge(
-                text = recipe.status,
-                severity = severity
-            )
         }
     }
 }
 
 @Composable
-private fun DetailRow(
+private fun InfoRow(
     label: String,
     value: String
 ) {
@@ -458,18 +518,36 @@ private fun DetailRow(
     }
 }
 
-@Preview(showBackground = true, heightDp = 1800)
+@Preview(showBackground = true, heightDp = 2000)
 @Composable
 private fun ProductDetailScreenPreview() {
     PantryChefTheme {
         ProductDetailContent(
             uiState = ProductDetailUiState(
-                productName = "Leche",
-                currentQuantity = 0.5f,
-                unit = "L",
-                location = "Refrigerador",
-                brand = "Pascual",
-                lowStockThreshold = 1.0f
+                productName = "Aceite de oliva",
+                category = "Condimentos",
+                categoryEmoji = "🧂",
+                location = "Despensa",
+                brand = "Carbonell",
+                originalQuantity = 53f,
+                currentQuantity = 55f,
+                unit = "cdas",
+                lowStockThreshold = 0.2f,
+                suggestedQuantity = "47 cdas",
+                suggestedAmount = 47f,
+                alertStatus = AlertStatus(
+                    message = "Stock bajo - Quedan 53 cdas",
+                    severity = BadgeSeverity.WARNING
+                ),
+                recipeSuggestions = listOf(
+                    RecipeSuggestion(
+                        id = "1",
+                        name = "Ensalada mediterránea",
+                        time = "15 min",
+                        usesAmount = "Usa 2 cdas"
+                    )
+                ),
+                hasUnsavedChanges = true
             ),
             onEvent = {},
             onBackClick = {}
