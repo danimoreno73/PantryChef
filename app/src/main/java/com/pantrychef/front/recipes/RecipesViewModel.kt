@@ -25,6 +25,7 @@ data class RecipeCardData(
 )
 
 enum class RecipeTab {
+    ALL,           // ← NUEVO: Tab "Todos" como primero
     COOKABLE,
     ALMOST,
     UNDER_30MIN,
@@ -32,12 +33,13 @@ enum class RecipeTab {
 }
 
 data class RecipesUiState(
+    val allRecipes: List<RecipeCardData> = emptyList(),  // ← NUEVO
     val cookableNow: List<RecipeCardData> = emptyList(),
     val almostCookable: List<RecipeCardData> = emptyList(),
     val under30Min: List<RecipeCardData> = emptyList(),
     val yourRecipes: List<RecipeCardData> = emptyList(),
     val searchQuery: String = "",
-    val activeTab: RecipeTab = RecipeTab.COOKABLE,
+    val activeTab: RecipeTab = RecipeTab.ALL,  // ← CAMBIADO: Default a ALL
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -69,6 +71,7 @@ class RecipesViewModel @Inject constructor(
     val navigation: StateFlow<RecipesNavigation?> = _navigation.asStateFlow()
 
     // Guardar listas originales para búsqueda local
+    private var originalAll: List<RecipeCardData> = emptyList()
     private var originalCookable: List<RecipeCardData> = emptyList()
     private var originalAlmost: List<RecipeCardData> = emptyList()
     private var originalUnder30: List<RecipeCardData> = emptyList()
@@ -108,6 +111,61 @@ class RecipesViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
+                // Cargar TODAS las recetas primero
+                launch {
+                    recipeRepository.getAllRecipes().collect { allRecipes ->
+                        val allCards = allRecipes.map { recipe ->
+                            RecipeCardData(
+                                id = recipe.id,
+                                title = recipe.name,
+                                prepTime = "${recipe.prepTimeMinutes} min",
+                                servings = "${recipe.servings} porciones",
+                                imageUrl = recipe.imageUrl,
+                                badge = null,
+                                badgeSeverity = null
+                            )
+                        }
+
+                        originalAll = allCards
+                        _uiState.update { it.copy(allRecipes = allCards) }
+
+                        // Filtrar recetas < 30 min
+                        val under30 = allRecipes.filter { it.prepTimeMinutes <= 30 }
+                        val under30Cards = under30.map { recipe ->
+                            RecipeCardData(
+                                id = recipe.id,
+                                title = recipe.name,
+                                prepTime = "${recipe.prepTimeMinutes} min",
+                                servings = "${recipe.servings} porciones",
+                                imageUrl = recipe.imageUrl,
+                                badge = "Rápida",
+                                badgeSeverity = BadgeSeverity.INFO
+                            )
+                        }
+
+                        // Filtrar "Tus recetas" (recetas privadas o del usuario)
+                        val yourRecipesCards = allRecipes.filter { !it.isPublic }.map { recipe ->
+                            RecipeCardData(
+                                id = recipe.id,
+                                title = recipe.name,
+                                prepTime = "${recipe.prepTimeMinutes} min",
+                                servings = "${recipe.servings} porciones",
+                                imageUrl = recipe.imageUrl,
+                                badge = null,
+                                badgeSeverity = null
+                            )
+                        }
+
+                        originalUnder30 = under30Cards
+                        originalYourRecipes = yourRecipesCards
+
+                        _uiState.update { it.copy(
+                            under30Min = under30Cards,
+                            yourRecipes = yourRecipesCards
+                        )}
+                    }
+                }
+
                 // Cargar recetas 100% cocinables
                 launch {
                     getCookableRecipesUseCase().collect { cookableRecipes ->
@@ -152,45 +210,6 @@ class RecipesViewModel @Inject constructor(
                     }
                 }
 
-                // Cargar todas las recetas para filtros adicionales
-                launch {
-                    recipeRepository.getAllRecipes().collect { allRecipes ->
-                        val under30 = allRecipes.filter { it.prepTimeMinutes <= 30 }
-                        val under30Cards = under30.map { recipe ->
-                            RecipeCardData(
-                                id = recipe.id,
-                                title = recipe.name,
-                                prepTime = "${recipe.prepTimeMinutes} min",
-                                servings = "${recipe.servings} porciones",
-                                imageUrl = recipe.imageUrl,
-                                badge = "Rápida",
-                                badgeSeverity = BadgeSeverity.INFO
-                            )
-                        }
-
-                        // TODO: Filtrar "Tus recetas" por userId cuando tengamos auth
-                        val yourRecipesCards = allRecipes.filter { !it.isPublic }.map { recipe ->
-                            RecipeCardData(
-                                id = recipe.id,
-                                title = recipe.name,
-                                prepTime = "${recipe.prepTimeMinutes} min",
-                                servings = "${recipe.servings} porciones",
-                                imageUrl = recipe.imageUrl,
-                                badge = null,
-                                badgeSeverity = null
-                            )
-                        }
-
-                        originalUnder30 = under30Cards
-                        originalYourRecipes = yourRecipesCards
-
-                        _uiState.update { it.copy(
-                            under30Min = under30Cards,
-                            yourRecipes = yourRecipesCards
-                        )}
-                    }
-                }
-
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(
@@ -205,6 +224,7 @@ class RecipesViewModel @Inject constructor(
         if (query.isBlank()) {
             // Restaurar listas originales
             _uiState.update { it.copy(
+                allRecipes = originalAll,
                 cookableNow = originalCookable,
                 almostCookable = originalAlmost,
                 under30Min = originalUnder30,
@@ -214,6 +234,9 @@ class RecipesViewModel @Inject constructor(
         }
 
         // Filtrar en memoria
+        val filteredAll = originalAll.filter {
+            it.title.contains(query, ignoreCase = true)
+        }
         val filteredCookable = originalCookable.filter {
             it.title.contains(query, ignoreCase = true)
         }
@@ -228,6 +251,7 @@ class RecipesViewModel @Inject constructor(
         }
 
         _uiState.update { it.copy(
+            allRecipes = filteredAll,
             cookableNow = filteredCookable,
             almostCookable = filteredAlmost,
             under30Min = filteredUnder30,

@@ -86,7 +86,7 @@ private fun RecipesContent(
         SearchBar(
             query = uiState.searchQuery,
             onQueryChange = { onEvent(RecipesEvent.SearchQueryChanged(it)) },
-            placeholder = "Buscar recetas, ingredientes...",
+            placeholder = "Buscar recetas...",
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
@@ -105,35 +105,29 @@ private fun RecipesContent(
                 Tab(
                     selected = isSelected,
                     onClick = { onEvent(RecipesEvent.TabChanged(tab)) },
-                    modifier = Modifier
-                        .padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 ) {
                     Surface(
                         color = if (isSelected) PrimaryGreenLight else MaterialTheme.colorScheme.surface,
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.padding(vertical = 8.dp)
                     ) {
-                        Row(
+                        Text(
+                            text = when (tab) {
+                                RecipeTab.ALL -> "Todos"
+                                RecipeTab.COOKABLE -> "Cocinables"
+                                RecipeTab.ALMOST -> "Casi"
+                                RecipeTab.UNDER_30MIN -> "< 30 min"
+                                RecipeTab.YOUR_RECIPES -> "Tus recetas"
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            if (tab == RecipeTab.COOKABLE) {
-                                Text("✓ ", color = MaterialTheme.colorScheme.primary)
-                            }
-                            Text(
-                                text = when (tab) {
-                                    RecipeTab.COOKABLE -> "Cocinables"
-                                    RecipeTab.ALMOST -> "Casi"
-                                    RecipeTab.UNDER_30MIN -> "< 30 min"
-                                    RecipeTab.YOUR_RECIPES -> "Tus recetas"
-                                },
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -141,129 +135,80 @@ private fun RecipesContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Content sections based on active tab
+        // Título de sección según tab activo
+        Text(
+            text = when (uiState.activeTab) {
+                RecipeTab.ALL -> "Todas las recetas"
+                RecipeTab.COOKABLE -> "Cocinables ahora"
+                RecipeTab.ALMOST -> "Casi cocinables"
+                RecipeTab.UNDER_30MIN -> "Recetas rápidas"
+                RecipeTab.YOUR_RECIPES -> "Tus recetas"
+            },
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Grid de recetas según tab activo
         val recipes = when (uiState.activeTab) {
+            RecipeTab.ALL -> uiState.allRecipes
             RecipeTab.COOKABLE -> uiState.cookableNow
             RecipeTab.ALMOST -> uiState.almostCookable
             RecipeTab.UNDER_30MIN -> uiState.under30Min
             RecipeTab.YOUR_RECIPES -> uiState.yourRecipes
         }
 
-        if (uiState.activeTab == RecipeTab.COOKABLE) {
-            // Show sections: Cocinables ahora + Casi cocinables
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Cocinables ahora section
-                Text(
-                    text = "Cocinables ahora",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(recipes) { recipe ->
+                RecipeCardGrid(
+                    title = recipe.title,
+                    prepTime = recipe.prepTime,
+                    servings = recipe.servings,
+                    imageUrl = recipe.imageUrl,
+                    badge = recipe.badge,
+                    badgeSeverity = recipe.badgeSeverity,
+                    onClick = { onEvent(RecipesEvent.RecipeClicked(recipe.id)) }
                 )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.cookableNow) { recipe ->
-                        RecipeCardGrid(
-                            title = recipe.title,
-                            prepTime = recipe.prepTime,
-                            servings = recipe.servings,
-                            imageUrl = recipe.imageUrl,
-                            badge = recipe.badge,
-                            badgeSeverity = recipe.badgeSeverity,
-                            onClick = { onEvent(RecipesEvent.RecipeClicked(recipe.id)) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Casi cocinables section
-                Text(
-                    text = "Casi cocinables",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.almostCookable) { recipe ->
-                        RecipeCardGrid(
-                            title = recipe.title,
-                            prepTime = recipe.prepTime,
-                            servings = recipe.servings,
-                            imageUrl = recipe.imageUrl,
-                            badge = recipe.badge,
-                            badgeSeverity = recipe.badgeSeverity,
-                            onClick = { onEvent(RecipesEvent.RecipeClicked(recipe.id)) }
-                        )
-                    }
-                }
             }
-        } else {
-            // Simple grid for other tabs
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(recipes) { recipe ->
-                    RecipeCardGrid(
-                        title = recipe.title,
-                        prepTime = recipe.prepTime,
-                        servings = recipe.servings,
-                        imageUrl = recipe.imageUrl,
-                        badge = recipe.badge,
-                        badgeSeverity = recipe.badgeSeverity,
-                        onClick = { onEvent(RecipesEvent.RecipeClicked(recipe.id)) }
-                    )
-                }
 
-                // "Crear receta" card for YOUR_RECIPES tab
-                if (uiState.activeTab == RecipeTab.YOUR_RECIPES) {
-                    item {
-                        Surface(
-                            onClick = { onEvent(RecipesEvent.CreateRecipeClicked) },
-                            color = PrimaryGreenLight,
-                            shape = MaterialTheme.shapes.large,
+            // "Crear receta" card solo en tab "Tus recetas"
+            if (uiState.activeTab == RecipeTab.YOUR_RECIPES) {
+                item {
+                    Surface(
+                        onClick = { onEvent(RecipesEvent.CreateRecipeClicked) },
+                        color = PrimaryGreenLight,
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(4f / 3f)
+                    ) {
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(4f / 3f)
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Add,
-                                    contentDescription = "Crear receta",
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Crear receta",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Filled.Add,
+                                contentDescription = "Crear receta",
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Crear receta",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }
