@@ -3,13 +3,17 @@ package com.pantrychef.front.recipes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.model.ShoppingItem
+import com.pantrychef.back.model.enums.Source
 import com.pantrychef.back.repository.AuthRepository
 import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.RecipeRepository
+import com.pantrychef.back.repository.ShoppingListRepository  // ← NUEVO IMPORT
 import com.pantrychef.back.utils.UnitsConverter
 import com.pantrychef.back.usecase.DeleteRecipeUseCase
 import com.pantrychef.back.usecase.RegisterMealUseCase
 import com.pantrychef.back.model.enums.MealType
+import com.pantrychef.back.model.Recipe  // ← NUEVO IMPORT
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID  // ← NUEVO IMPORT
 import javax.inject.Inject
 
 enum class AvailabilityStatus {
@@ -28,8 +33,7 @@ data class IngredientItemUiModel(
     val id: String,
     val name: String,
     val quantity: String,
-    val isAvailable: Boolean,
-    val isChecked: Boolean
+    val isAvailable: Boolean
 )
 
 data class RecipeStepUiModel(
@@ -59,9 +63,7 @@ data class RecipeDetailUiState(
 
 sealed interface RecipeDetailEvent {
     object ToggleFavorite : RecipeDetailEvent
-    data class IngredientChecked(val ingredientId: String, val isChecked: Boolean) : RecipeDetailEvent
     object CookNowClicked : RecipeDetailEvent
-    object RegisterMeal : RecipeDetailEvent
     data class ConfirmMealType(val mealType: MealType) : RecipeDetailEvent
     object DismissMealTypeDialog : RecipeDetailEvent
     object AddMissingToShoppingList : RecipeDetailEvent
@@ -85,6 +87,7 @@ class RecipeDetailViewModel @Inject constructor(
     private val recipeRepository: RecipeRepository,
     private val productRepository: ProductRepository,
     private val authRepository: AuthRepository,
+    private val shoppingListRepository: ShoppingListRepository,  // ← NUEVO
     private val registerMealUseCase: RegisterMealUseCase,
     private val deleteRecipeUseCase: DeleteRecipeUseCase
 ) : ViewModel() {
@@ -97,6 +100,8 @@ class RecipeDetailViewModel @Inject constructor(
     private val _navigation = MutableStateFlow<RecipeDetailNavigation?>(null)
     val navigation: StateFlow<RecipeDetailNavigation?> = _navigation.asStateFlow()
 
+    private var currentRecipe: Recipe? = null
+
     init {
         loadRecipeDetail()
     }
@@ -107,22 +112,7 @@ class RecipeDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(isFavorite = !it.isFavorite) }
             }
 
-            is RecipeDetailEvent.IngredientChecked -> {
-                val updatedIngredients = _uiState.value.ingredients.map { ingredient ->
-                    if (ingredient.id == event.ingredientId) {
-                        ingredient.copy(isChecked = event.isChecked)
-                    } else {
-                        ingredient
-                    }
-                }
-                _uiState.update { it.copy(ingredients = updatedIngredients) }
-            }
-
             RecipeDetailEvent.CookNowClicked -> {
-                _uiState.update { it.copy(showMealTypeDialog = true) }
-            }
-
-            RecipeDetailEvent.RegisterMeal -> {
                 _uiState.update { it.copy(showMealTypeDialog = true) }
             }
 
@@ -135,7 +125,7 @@ class RecipeDetailViewModel @Inject constructor(
             }
 
             RecipeDetailEvent.AddMissingToShoppingList -> {
-                _navigation.value = RecipeDetailNavigation.ToShoppingList
+                addMissingIngredientsToShoppingList()
             }
 
             RecipeDetailEvent.SubstituteIngredients -> {
@@ -174,6 +164,8 @@ class RecipeDetailViewModel @Inject constructor(
 
                 recipeResult.fold(
                     onSuccess = { recipe ->
+                        currentRecipe = recipe  // ← GUARDAR receta completa
+
                         // Verificar si es receta del usuario
                         val isUserRecipe = !recipe.isPublic || recipe.createdBy == currentUserId
 
@@ -198,8 +190,7 @@ class RecipeDetailViewModel @Inject constructor(
                                 id = ingredient.id,
                                 name = ingredient.productName,
                                 quantity = UnitsConverter.formatQuantityShort(ingredient.quantity, ingredient.unit),
-                                isAvailable = isAvailable,
-                                isChecked = false
+                                isAvailable = isAvailable
                             )
                         }
 
@@ -256,6 +247,57 @@ class RecipeDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(
                     isLoading = false,
                     error = e.message ?: "Error al cargar receta"
+                )}
+            }
+        }
+    }
+
+    // ← NUEVO
+    private fun addMissingIngredientsToShoppingList() {
+        viewModelScope.launch {
+            val recipe = currentRecipe ?: return@launch
+            val products = productRepository.getAllProducts().first()
+
+            _uiState.update { it.copy(isLoading = true) }
+
+            try {
+                // Filtrar ingredientes faltantes de la receta
+                val missingIngredients = recipe.ingredients.filter { ingredient ->
+                    val product = products.find {
+                        it.name.trim().equals(ingredient.productName.trim(), ignoreCase = true)
+                    }
+
+                    // No disponible si no existe producto o cantidad insuficiente
+                    product == null || !UnitsConverter.hasSufficientQuantity(
+                        productQuantity = product.quantity,
+                        productUnit = product.unit,
+                        requiredQuantity = ingredient.quantity,
+                        requiredUnit = ingredient.unit
+                    )
+                }
+
+                // Crear ShoppingItems para cada ingrediente faltante
+                missingIngredients.forEach { ingredient ->
+                    val shoppingItem = ShoppingItem(
+                        id = "shop-${UUID.randomUUID()}",
+                        productName = ingredient.productName,
+                        quantity = ingredient.quantity,
+                        unit = ingredient.unit,
+                        source = Source.RECIPE,
+                        linkedRecipeId = recipe.id,
+                        isPurchased = false,
+                        priority = 5
+                    )
+
+                    shoppingListRepository.addItem(shoppingItem)
+                }
+
+                _uiState.update { it.copy(isLoading = false) }
+                _navigation.value = RecipeDetailNavigation.ToShoppingList
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al añadir ingredientes"
                 )}
             }
         }

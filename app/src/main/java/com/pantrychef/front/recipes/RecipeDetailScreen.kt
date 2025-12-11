@@ -6,9 +6,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -126,6 +128,17 @@ private fun RecipeDetailContent(
                             MaterialTheme.colorScheme.onSurface
                     )
                 }
+
+                // Papelera solo para recetas del usuario
+                if (uiState.isUserRecipe) {
+                    IconButton(onClick = { onEvent(RecipeDetailEvent.DeleteRecipeClicked) }) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Eliminar",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
         )
 
@@ -231,56 +244,17 @@ private fun RecipeDetailContent(
                         fontWeight = FontWeight.Bold
                     )
 
-                    if (uiState.isUserRecipe) {
-                        TextButton(onClick = { onEvent(RecipeDetailEvent.EditRecipeClicked) }) {
-                            Text("Editar receta")
-                        }
-                    } else {
-                        TextButton(onClick = { /* No action for non-user recipes */ }) {
-                            Text("${uiState.servings} porciones")
-                        }
-                    }
+                    Text(
+                        text = "${uiState.servings} porciones",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 uiState.ingredients.forEach { ingredient ->
-                    IngredientRow(
-                        ingredient = ingredient,
-                        onCheckedChange = { checked ->
-                            onEvent(RecipeDetailEvent.IngredientChecked(ingredient.id, checked))
-                        }
-                    )
-                }
-
-                // Botones
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (uiState.isUserRecipe) {
-                    // Receta del usuario: Editar + Cocinar
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        SecondaryButton(
-                            text = "Editar receta",
-                            onClick = { onEvent(RecipeDetailEvent.EditRecipeClicked) },
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        PrimaryButton(
-                            text = "Cocinar ahora",
-                            onClick = { onEvent(RecipeDetailEvent.CookNowClicked) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                } else {
-                    // Receta pública: Solo cocinar
-                    PrimaryButton(
-                        text = "Cocinar ahora",
-                        onClick = { onEvent(RecipeDetailEvent.CookNowClicked) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    IngredientRow(ingredient = ingredient)
                 }
             }
 
@@ -304,59 +278,88 @@ private fun RecipeDetailContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Después de cocinar Section
+            // Botones según disponibilidad
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                Text(
-                    text = "Después de cocinar",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                AfterCookingCard(
-                    title = "Registrar comida",
-                    subtitle = "Reduce los ingredientes de la despensa",
-                    actionLabel = "Listo",
-                    onClick = { onEvent(RecipeDetailEvent.RegisterMeal) }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 if (uiState.availabilityStatus == AvailabilityStatus.PARTIAL) {
-                    AfterCookingCard(
-                        title = "Añadir faltantes a lista",
-                        subtitle = "Para repetir esta receta",
-                        actionLabel = "Sugerido",
-                        onClick = { onEvent(RecipeDetailEvent.AddMissingToShoppingList) }
-                    )
+                    // PARTIAL: Añadir faltantes
+                    Surface(
+                        onClick = { onEvent(RecipeDetailEvent.AddMissingToShoppingList) },
+                        color = com.pantrychef.front.theme.BadgeWarning.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Añadir ${uiState.missingIngredients.size} ${if (uiState.missingIngredients.size == 1) "ingrediente" else "ingredientes"} a lista",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Completa tu despensa para poder cocinar",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextSecondary
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Icon(
+                                imageVector = Icons.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Si es receta del usuario, añadir botón Editar debajo
+                    if (uiState.isUserRecipe) {
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    AfterCookingCard(
-                        title = "Sustituir ingredientes",
-                        subtitle = "Sugerencias alternativas",
-                        actionLabel = "Ver",
-                        onClick = { onEvent(RecipeDetailEvent.SubstituteIngredients) }
-                    )
-                }
+                        SecondaryButton(
+                            text = "Editar receta",
+                            onClick = { onEvent(RecipeDetailEvent.EditRecipeClicked) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                } else {
+                    // FULL: Botones normales
+                    if (uiState.isUserRecipe) {
+                        // Receta del usuario: Editar + Cocinar
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            SecondaryButton(
+                                text = "Editar receta",
+                                onClick = { onEvent(RecipeDetailEvent.EditRecipeClicked) },
+                                modifier = Modifier.weight(1f)
+                            )
 
-                // Botón eliminar (solo para recetas del usuario)
-                if (uiState.isUserRecipe) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    AfterCookingCard(
-                        title = "Eliminar receta",
-                        subtitle = "Esta acción no se puede deshacer",
-                        actionLabel = "Eliminar",
-                        onClick = { onEvent(RecipeDetailEvent.DeleteRecipeClicked) },
-                        isDestructive = true
-                    )
+                            PrimaryButton(
+                                text = "Cocinar ahora",
+                                onClick = { onEvent(RecipeDetailEvent.CookNowClicked) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    } else {
+                        // Receta pública: Solo cocinar
+                        PrimaryButton(
+                            text = "Cocinar ahora",
+                            onClick = { onEvent(RecipeDetailEvent.CookNowClicked) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+
         // Dialog de tipo de comida
         if (uiState.showMealTypeDialog) {
             MealTypeDialog(
@@ -395,26 +398,15 @@ private fun RecipeDetailContent(
 
 @Composable
 private fun IngredientRow(
-    ingredient: IngredientItemUiModel,
-    onCheckedChange: (Boolean) -> Unit
+    ingredient: IngredientItemUiModel
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Checkbox(
-            checked = ingredient.isChecked,
-            onCheckedChange = onCheckedChange,
-            enabled = ingredient.isAvailable,
-            colors = CheckboxDefaults.colors(
-                checkedColor = MaterialTheme.colorScheme.primary
-            )
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = ingredient.name,
@@ -496,38 +488,21 @@ private fun AfterCookingCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.CheckCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = if (isDestructive)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isDestructive)
                         MaterialTheme.colorScheme.error
                     else
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.onSurface
                 )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isDestructive)
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
-                    )
-                }
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
             }
 
             Surface(
@@ -658,8 +633,9 @@ private fun RecipeDetailScreenPreview() {
                 prepTime = 25,
                 servings = 2,
                 difficulty = "Fácil",
-                availabilityStatus = AvailabilityStatus.FULL,
-                isUserRecipe = true
+                availabilityStatus = AvailabilityStatus.PARTIAL,
+                missingIngredients = listOf("Tomate", "Ajo"),
+                isUserRecipe = false
             ),
             onEvent = {},
             onBackClick = {}

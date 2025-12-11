@@ -73,13 +73,6 @@ private fun RecipesContent(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-
-            IconButton(onClick = { /* TODO: Search */ }) {
-                Icon(
-                    imageVector = Icons.Filled.Search,
-                    contentDescription = "Buscar"
-                )
-            }
         }
 
         // Search bar
