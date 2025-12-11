@@ -108,13 +108,6 @@ private fun ProductDetailContent(
                         contentDescription = "Editar"
                     )
                 }
-                IconButton(onClick = { onEvent(ProductDetailEvent.DeleteClicked) }) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = "Eliminar",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
             }
         )
 

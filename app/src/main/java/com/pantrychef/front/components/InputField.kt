@@ -39,7 +39,36 @@ fun InputField(
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { newValue ->
+                // Filtrar input según el tipo de teclado
+                val filtered = when (keyboardType) {
+                    KeyboardType.Decimal -> {
+                        // Solo números y un punto decimal
+                        if (newValue.isEmpty()) {
+                            newValue
+                        } else {
+                            // Eliminar cualquier carácter que no sea dígito o punto
+                            val cleaned = newValue.filter { it.isDigit() || it == '.' }
+
+                            // Asegurar que solo haya un punto decimal
+                            val dotCount = cleaned.count { it == '.' }
+                            if (dotCount <= 1) {
+                                cleaned
+                            } else {
+                                // Si hay más de un punto, mantener el valor anterior
+                                value
+                            }
+                        }
+                    }
+                    KeyboardType.Number -> {
+                        // Solo números enteros (sin punto decimal)
+                        newValue.filter { it.isDigit() }
+                    }
+                    else -> newValue // Sin filtro para otros tipos
+                }
+
+                onValueChange(filtered)
+            },
             label = { Text(label) },
             placeholder = placeholder?.let { { Text(it) } },
             leadingIcon = leadingIcon?.let {
@@ -81,6 +110,15 @@ private fun InputFieldPreview() {
                 onValueChange = {},
                 label = "Correo electrónico",
                 placeholder = "tu@correo.com"
+            )
+
+            InputField(
+                value = "",
+                onValueChange = {},
+                label = "Cantidad",
+                placeholder = "2.5",
+                keyboardType = KeyboardType.Decimal,
+                modifier = Modifier.padding(top = 16.dp)
             )
 
             InputField(
