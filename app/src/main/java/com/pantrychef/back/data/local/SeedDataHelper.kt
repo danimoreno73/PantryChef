@@ -33,7 +33,7 @@ class SeedDataHelper @Inject constructor(
         val pastaRecipe = RecipeEntity(
             id = "recipe-1",
             name = "Pasta con Tomate",
-            imageUrl = null,
+            imageUrl = "https://images.unsplash.com/photo-1702650621517-927b5caa28bc?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cGFzdGElMjBjb24lMjB0b21hdGV8ZW58MHx8MHx8fDA%3D",
             prepTimeMinutes = 20,
             servings = 2,
             difficulty = "EASY",
@@ -82,7 +82,7 @@ class SeedDataHelper @Inject constructor(
         val tortillaRecipe = RecipeEntity(
             id = "recipe-2",
             name = "Tortilla de Patatas",
-            imageUrl = null,
+            imageUrl = "https://images.unsplash.com/photo-1639669794539-952631b44515?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dG9ydGlsbGF8ZW58MHx8MHx8fDA%3D",
             prepTimeMinutes = 30,
             servings = 4,
             difficulty = "MEDIUM",
@@ -139,7 +139,7 @@ class SeedDataHelper @Inject constructor(
         val arrozRecipe = RecipeEntity(
             id = "recipe-3",
             name = "Arroz con Pollo",
-            imageUrl = null,
+            imageUrl = "https://images.unsplash.com/photo-1569058242252-623df46b5025?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YXJyb3olMjB5JTIwcG9sbG98ZW58MHx8MHx8fDA%3D",
             prepTimeMinutes = 45,
             servings = 4,
             difficulty = "MEDIUM",
