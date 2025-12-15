@@ -1,13 +1,9 @@
 package com.pantrychef.front.shoppinglist
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,7 +18,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.pantrychef.front.components.PrimaryButton
 import com.pantrychef.front.components.SearchBar
-import com.pantrychef.front.components.SecondaryButton
 import com.pantrychef.front.components.ShoppingItemRow
 import com.pantrychef.front.navigation.Routes
 import com.pantrychef.front.theme.PantryChefTheme
@@ -62,7 +57,7 @@ private fun ShoppingListContent(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Header
+        // Header - SIN botones de compartir y menú
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -75,21 +70,6 @@ private fun ShoppingListContent(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-
-            Row {
-                IconButton(onClick = { /* TODO: Share */ }) {
-                    Icon(
-                        imageVector = Icons.Filled.Share,
-                        contentDescription = "Compartir"
-                    )
-                }
-                IconButton(onClick = { /* TODO: More options */ }) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = "Más opciones"
-                    )
-                }
-            }
         }
 
         // Search bar
@@ -214,7 +194,11 @@ private fun ShoppingListContent(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        TextButton(onClick = { /* TODO: Add all */ }) {
+                        TextButton(
+                            onClick = {
+                                onEvent(ShoppingListEvent.AddAllFromCategory(ShoppingCategory.FROM_RECIPES))
+                            }
+                        ) {
                             Text("Añadir todo")
                         }
                     }
@@ -231,12 +215,6 @@ private fun ShoppingListContent(
                         sourceTagSeverity = item.sourceTagSeverity,
                         onCheckedChange = { checked ->
                             onEvent(ShoppingListEvent.ItemCheckedChanged(item.id, checked))
-                        },
-                        onQuantityIncrease = {
-                            onEvent(ShoppingListEvent.QuantityIncreased(item.id))
-                        },
-                        onQuantityDecrease = {
-                            onEvent(ShoppingListEvent.QuantityDecreased(item.id))
                         }
                     )
                 }
@@ -253,12 +231,16 @@ private fun ShoppingListContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Bajo stock",
+                            text = "Sugeridos",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        TextButton(onClick = { /* TODO: Add suggestions */ }) {
-                            Text("Añadir sugeridos")
+                        TextButton(
+                            onClick = {
+                                onEvent(ShoppingListEvent.AddAllFromCategory(ShoppingCategory.LOW_STOCK))
+                            }
+                        ) {
+                            Text("Añadir todo")
                         }
                     }
                 }
@@ -274,12 +256,6 @@ private fun ShoppingListContent(
                         sourceTagSeverity = item.sourceTagSeverity,
                         onCheckedChange = { checked ->
                             onEvent(ShoppingListEvent.ItemCheckedChanged(item.id, checked))
-                        },
-                        onQuantityIncrease = {
-                            onEvent(ShoppingListEvent.QuantityIncreased(item.id))
-                        },
-                        onQuantityDecrease = {
-                            onEvent(ShoppingListEvent.QuantityDecreased(item.id))
                         }
                     )
                 }
@@ -317,37 +293,24 @@ private fun ShoppingListContent(
                         sourceTagSeverity = item.sourceTagSeverity,
                         onCheckedChange = { checked ->
                             onEvent(ShoppingListEvent.ItemCheckedChanged(item.id, checked))
-                        },
-                        onQuantityIncrease = {
-                            onEvent(ShoppingListEvent.QuantityIncreased(item.id))
-                        },
-                        onQuantityDecrease = {
-                            onEvent(ShoppingListEvent.QuantityDecreased(item.id))
                         }
                     )
                 }
             }
         }
 
-        // Bottom action buttons
+        // Bottom action button - SOLO UNO
         Surface(
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.padding(16.dp)
             ) {
                 PrimaryButton(
                     text = "Marcar todo como comprado",
                     onClick = { onEvent(ShoppingListEvent.MarkAllAsPurchased) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                SecondaryButton(
-                    text = "Mover marcados a despensa",
-                    onClick = { onEvent(ShoppingListEvent.MoveCheckedToPantry) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = uiState.checkedItems > 0
                 )

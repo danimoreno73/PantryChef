@@ -2,8 +2,11 @@ package com.pantrychef.front.shoppinglist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pantrychef.back.model.Product
 import com.pantrychef.back.model.ShoppingItem
+import com.pantrychef.back.model.enums.Category
 import com.pantrychef.back.model.enums.Source
+import com.pantrychef.back.repository.ProductRepository
 import com.pantrychef.back.repository.ShoppingListRepository
 import com.pantrychef.back.usecase.BuildSuggestedShoppingListUseCase
 import com.pantrychef.front.components.BadgeSeverity
@@ -11,8 +14,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 enum class ShoppingCategory {
@@ -54,11 +59,9 @@ sealed interface ShoppingListEvent {
     data class SearchQueryChanged(val query: String) : ShoppingListEvent
     data class FilterChanged(val filter: ShoppingFilter) : ShoppingListEvent
     data class ItemCheckedChanged(val itemId: String, val isChecked: Boolean) : ShoppingListEvent
-    data class QuantityIncreased(val itemId: String) : ShoppingListEvent
-    data class QuantityDecreased(val itemId: String) : ShoppingListEvent
+    data class AddAllFromCategory(val category: ShoppingCategory) : ShoppingListEvent
     object AddManualItem : ShoppingListEvent
     object MarkAllAsPurchased : ShoppingListEvent
-    object MoveCheckedToPantry : ShoppingListEvent
 }
 
 sealed interface ShoppingListNavigation {
@@ -68,6 +71,7 @@ sealed interface ShoppingListNavigation {
 @HiltViewModel
 class ShoppingListViewModel @Inject constructor(
     private val shoppingListRepository: ShoppingListRepository,
+    private val productRepository: ProductRepository,
     private val buildSuggestedShoppingListUseCase: BuildSuggestedShoppingListUseCase
 ) : ViewModel() {
 
@@ -102,12 +106,8 @@ class ShoppingListViewModel @Inject constructor(
                 toggleItemChecked(event.itemId, event.isChecked)
             }
 
-            is ShoppingListEvent.QuantityIncreased -> {
-                adjustQuantity(event.itemId, increase = true)
-            }
-
-            is ShoppingListEvent.QuantityDecreased -> {
-                adjustQuantity(event.itemId, increase = false)
+            is ShoppingListEvent.AddAllFromCategory -> {
+                addAllFromCategory(event.category)
             }
 
             ShoppingListEvent.AddManualItem -> {
@@ -116,10 +116,6 @@ class ShoppingListViewModel @Inject constructor(
 
             ShoppingListEvent.MarkAllAsPurchased -> {
                 markAllAsPurchased()
-            }
-
-            ShoppingListEvent.MoveCheckedToPantry -> {
-                moveCheckedToPantry()
             }
         }
     }
@@ -201,24 +197,85 @@ class ShoppingListViewModel @Inject constructor(
         }
     }
 
-    private fun adjustQuantity(itemId: String, increase: Boolean) {
-        // TODO: Implement quantity adjustment
-        // Necesitarías añadir un método updateQuantity en ShoppingListRepository
-    }
-
-    private fun markAllAsPurchased() {
+    private fun addAllFromCategory(category: ShoppingCategory) {
         viewModelScope.launch {
-            allItems.forEach { item ->
-                if (!item.isPurchased) {
-                    shoppingListRepository.markAsPurchased(item.id)
+            val itemsToAdd = allItems.filter { item ->
+                val uiCategory = when (item.source) {
+                    Source.RECIPE -> ShoppingCategory.FROM_RECIPES
+                    Source.LOW_STOCK -> ShoppingCategory.LOW_STOCK
+                    Source.MANUAL -> ShoppingCategory.OTHERS
                 }
+                uiCategory == category && !item.isPurchased
+            }
+
+            itemsToAdd.forEach { item ->
+                shoppingListRepository.markAsPurchased(item.id)
             }
         }
     }
 
-    private fun moveCheckedToPantry() {
+    private fun markAllAsPurchased() {
         viewModelScope.launch {
-            _navigation.value = ShoppingListNavigation.ToPantry
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            try {
+                // 1. Obtener todos los items marcados
+                val purchasedItems = allItems.filter { it.isPurchased }
+
+                if (purchasedItems.isEmpty()) {
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = "No hay items marcados"
+                    )}
+                    return@launch
+                }
+
+                // 2. Obtener todos los productos actuales de la despensa
+                val existingProducts = productRepository.getAllProducts().first()
+
+                // 3. Para cada item comprado, añadir o actualizar en despensa
+                purchasedItems.forEach { item ->
+                    val existingProduct = existingProducts.find {
+                        it.name.equals(item.productName, ignoreCase = true)
+                    }
+
+                    if (existingProduct != null) {
+                        // Producto existe -> Incrementar cantidad
+                        val updatedProduct = existingProduct.copy(
+                            quantity = existingProduct.quantity + item.quantity,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        productRepository.updateProduct(updatedProduct)
+                    } else {
+                        // Producto no existe -> Crear nuevo
+                        val newProduct = Product(
+                            id = UUID.randomUUID().toString(),
+                            name = item.productName,
+                            category = Category.OTHERS, // Categoría por defecto
+                            quantity = item.quantity,
+                            unit = item.unit,
+                            lowStockThreshold = 1.0f,
+                            location = null,
+                            brand = null,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        productRepository.addProduct(newProduct)
+                    }
+
+                    // 4. Eliminar item de la lista de compras
+                    shoppingListRepository.removeItem(item.id)
+                }
+
+                // 5. Navegar a despensa
+                _uiState.update { it.copy(isLoading = false) }
+                _navigation.value = ShoppingListNavigation.ToPantry
+
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al mover items a despensa"
+                )}
+            }
         }
     }
 
@@ -232,7 +289,7 @@ class ShoppingListViewModel @Inject constructor(
         val (sourceText, sourceTag, tagSeverity) = when (item.source) {
             Source.RECIPE -> Triple("Receta", "De receta", BadgeSeverity.SUCCESS)
             Source.LOW_STOCK -> Triple("Stock bajo", "Sugerido", BadgeSeverity.WARNING)
-            Source.MANUAL -> Triple("Manual", "", BadgeSeverity.INFO)  // ✅ INFO en lugar de null
+            Source.MANUAL -> Triple("Manual", "", BadgeSeverity.INFO)
         }
 
         return ShoppingItemUiModel(

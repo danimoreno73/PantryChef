@@ -22,8 +22,6 @@ fun ShoppingItemRow(
     sourceTag: String,
     sourceTagSeverity: BadgeSeverity,
     onCheckedChange: (Boolean) -> Unit,
-    onQuantityIncrease: () -> Unit,
-    onQuantityDecrease: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -64,46 +62,29 @@ fun ShoppingItemRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary
                 )
-                Text(
-                    text = "•",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
-                StatusBadge(
-                    text = sourceTag,
-                    severity = sourceTagSeverity
-                )
+                if (sourceTag.isNotEmpty()) {
+                    Text(
+                        text = "•",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                    StatusBadge(
+                        text = sourceTag,
+                        severity = sourceTagSeverity
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Quantity stepper
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            IconButton(
-                onClick = onQuantityDecrease,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Text("-", style = MaterialTheme.typography.titleMedium)
-            }
-
-            Text(
-                text = "${quantity.toInt()} $unit",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.widthIn(min = 50.dp)
-            )
-
-            IconButton(
-                onClick = onQuantityIncrease,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Text("+", style = MaterialTheme.typography.titleMedium)
-            }
-        }
+        // Quantity display (sin botones)
+        Text(
+            text = "${quantity.toInt()} $unit",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -118,11 +99,9 @@ private fun ShoppingItemRowPreview() {
                 unit = "uds",
                 isChecked = false,
                 source = "Para Tacos de pollo",
-                sourceTag = "Receta",
-                sourceTagSeverity = BadgeSeverity.INFO,
-                onCheckedChange = {},
-                onQuantityIncrease = {},
-                onQuantityDecrease = {}
+                sourceTag = "De receta",
+                sourceTagSeverity = BadgeSeverity.SUCCESS,
+                onCheckedChange = {}
             )
 
             ShoppingItemRow(
@@ -133,9 +112,18 @@ private fun ShoppingItemRowPreview() {
                 source = "Bajo stock",
                 sourceTag = "Sugerido",
                 sourceTagSeverity = BadgeSeverity.WARNING,
-                onCheckedChange = {},
-                onQuantityIncrease = {},
-                onQuantityDecrease = {}
+                onCheckedChange = {}
+            )
+
+            ShoppingItemRow(
+                name = "Sal",
+                quantity = 1.0,
+                unit = "kg",
+                isChecked = false,
+                source = "Manual",
+                sourceTag = "",
+                sourceTagSeverity = BadgeSeverity.INFO,
+                onCheckedChange = {}
             )
         }
     }
