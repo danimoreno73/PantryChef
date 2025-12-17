@@ -5,8 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
@@ -16,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,7 +48,8 @@ fun HomeScreen(
                 navController.navigate(Routes.PANTRY)
                 viewModel.clearNavigation()
             }
-            HomeNavigation.ToRecipes -> {
+            is HomeNavigation.ToRecipes -> {
+                // TODO: Pasar el filtro cuando se implemente en RecipesScreen
                 navController.navigate(Routes.RECIPES)
                 viewModel.clearNavigation()
             }
@@ -95,13 +95,11 @@ private fun HomeContent(
                     fontWeight = FontWeight.Bold
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = { onEvent(HomeEvent.SettingsClicked) }) {  // <- Cambiar esto
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = "Configuración"
-                        )
-                    }
+                IconButton(onClick = { onEvent(HomeEvent.SettingsClicked) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = "Configuración"
+                    )
                 }
             }
         }
@@ -134,7 +132,6 @@ private fun HomeContent(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // CAMBIA ESTO: En lugar de un solo DailySummaryCard, usa dos separados
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -154,7 +151,7 @@ private fun HomeContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Quick Actions - CAMBIA los labels
+                // Quick Actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -193,22 +190,43 @@ private fun HomeContent(
                     fontWeight = FontWeight.Bold
                 )
 
-                TextButton(onClick = { onEvent(HomeEvent.ViewAllAlertsClicked) }) {
-                    Text("Ver todo")
+                if (uiState.alerts.isNotEmpty()) {
+                    TextButton(onClick = { onEvent(HomeEvent.ViewAllAlertsClicked) }) {
+                        Text("Ver todo")
+                    }
                 }
             }
         }
 
-        items(uiState.alerts.take(3)) { alert ->
-            AlertListItem(
-                productName = alert.productName,
-                message = alert.message,
-                categoryInfo = alert.categoryInfo,
-                severity = alert.severity,
-                actionLabel = alert.actionLabel,
-                onClick = { onEvent(HomeEvent.AlertClicked(alert.id)) },
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+        // Contenido de alertas o mensaje vacío
+        if (uiState.alerts.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = " No hay alertas actualmente\nTodos tus productos están en buen estado",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            items(uiState.alerts.take(3)) { alert ->
+                AlertListItem(
+                    productName = alert.productName,
+                    message = alert.message,
+                    categoryInfo = alert.categoryInfo,
+                    severity = alert.severity,
+                    actionLabel = alert.actionLabel,
+                    onClick = { onEvent(HomeEvent.AlertClicked(alert.id)) },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
         }
 
         // Recetas cocinables
@@ -228,52 +246,105 @@ private fun HomeContent(
                     fontWeight = FontWeight.Bold
                 )
 
-                TextButton(onClick = { onEvent(HomeEvent.ViewAllRecipesClicked) }) {
-                    Text("Ver todas")
+                if (uiState.cookableRecipes.isNotEmpty()) {
+                    TextButton(onClick = { onEvent(HomeEvent.ViewAllCookableRecipesClicked) }) {
+                        Text("Ver todas")
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        items(uiState.cookableRecipes.take(2)) { recipe ->
-            RecipeCardHorizontal(
-                title = recipe.title,
-                prepTime = recipe.prepTime,
-                servings = recipe.servings,
-                imageUrl = recipe.imageUrl,
-                badge = recipe.badge,
-                badgeSeverity = recipe.badgeSeverity,
-                onClick = { onEvent(HomeEvent.RecipeClicked(recipe.id)) },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
+        // Contenido de recetas cocinables o mensaje vacío
+        if (uiState.cookableRecipes.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🍳 No hay recetas completamente cocinables\nAñade más productos a tu despensa",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            items(uiState.cookableRecipes.take(3)) { recipe ->
+                RecipeCardHorizontal(
+                    title = recipe.title,
+                    prepTime = recipe.prepTime,
+                    servings = recipe.servings,
+                    imageUrl = recipe.imageUrl,
+                    badge = recipe.badge,
+                    badgeSeverity = recipe.badgeSeverity,
+                    onClick = { onEvent(HomeEvent.RecipeClicked(recipe.id)) },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
         }
 
         // Casi cocinables
         item {
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Casi cocinables",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Casi cocinables",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                if (uiState.almostCookableRecipes.isNotEmpty()) {
+                    TextButton(onClick = { onEvent(HomeEvent.ViewAllAlmostCookableRecipesClicked) }) {
+                        Text("Ver todas")
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        items(uiState.almostCookableRecipes.take(2)) { recipe ->
-            RecipeCardHorizontal(
-                title = recipe.title,
-                prepTime = recipe.prepTime,
-                servings = recipe.servings,
-                imageUrl = recipe.imageUrl,
-                badge = recipe.badge,
-                badgeSeverity = recipe.badgeSeverity,
-                onClick = { onEvent(HomeEvent.RecipeClicked(recipe.id)) },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
+        // Contenido de casi cocinables o mensaje vacío
+        if (uiState.almostCookableRecipes.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "📝 No hay recetas casi cocinables\nExplora nuevas recetas en la sección de Recetas",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            items(uiState.almostCookableRecipes.take(3)) { recipe ->
+                RecipeCardHorizontal(
+                    title = recipe.title,
+                    prepTime = recipe.prepTime,
+                    servings = recipe.servings,
+                    imageUrl = recipe.imageUrl,
+                    badge = recipe.badge,
+                    badgeSeverity = recipe.badgeSeverity,
+                    onClick = { onEvent(HomeEvent.RecipeClicked(recipe.id)) },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
         }
 
         // Lista de compra sugerida
@@ -293,40 +364,61 @@ private fun HomeContent(
                     fontWeight = FontWeight.Bold
                 )
 
-                TextButton(onClick = { onEvent(HomeEvent.GoToShoppingListClicked) }) {
-                    Text("Abrir lista")
+                if (uiState.shoppingPreview.isNotEmpty()) {
+                    TextButton(onClick = { onEvent(HomeEvent.GoToShoppingListClicked) }) {
+                        Text("Abrir lista")
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        items(uiState.shoppingPreview.take(2)) { item ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
+        // Contenido de lista de compra o mensaje vacío
+        if (uiState.shoppingPreview.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        text = "🛒 No hay sugerencias de compra\nTu despensa está bien abastecida",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
                     )
+                }
+            }
+        } else {
+            items(uiState.shoppingPreview.take(2)) { item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = item.source,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+
                     Text(
-                        text = item.source,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = item.quantity,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
                 }
-
-                Text(
-                    text = item.quantity,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
-                )
             }
         }
     }

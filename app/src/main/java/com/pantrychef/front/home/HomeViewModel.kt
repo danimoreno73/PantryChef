@@ -63,7 +63,8 @@ sealed interface HomeEvent {
     object AddToPantryClicked : HomeEvent
     object ScanClicked : HomeEvent
     object ViewAllAlertsClicked : HomeEvent
-    object ViewAllRecipesClicked : HomeEvent
+    object ViewAllCookableRecipesClicked : HomeEvent
+    object ViewAllAlmostCookableRecipesClicked : HomeEvent
     object GoToShoppingListClicked : HomeEvent
     object SettingsClicked : HomeEvent
 }
@@ -72,9 +73,14 @@ sealed interface HomeNavigation {
     data class ToProductDetail(val productId: String) : HomeNavigation
     data class ToRecipeDetail(val recipeId: String) : HomeNavigation
     object ToPantry : HomeNavigation
-    object ToRecipes : HomeNavigation
+    data class ToRecipes(val filterType: RecipeFilterType? = null) : HomeNavigation
     object ToShoppingList : HomeNavigation
     object ToSettings : HomeNavigation
+}
+
+enum class RecipeFilterType {
+    COOKABLE,
+    ALMOST_COOKABLE
 }
 
 @HiltViewModel
@@ -121,8 +127,12 @@ class HomeViewModel @Inject constructor(
                 _navigation.value = HomeNavigation.ToPantry
             }
 
-            HomeEvent.ViewAllRecipesClicked -> {
-                _navigation.value = HomeNavigation.ToRecipes
+            HomeEvent.ViewAllCookableRecipesClicked -> {
+                _navigation.value = HomeNavigation.ToRecipes(RecipeFilterType.COOKABLE)
+            }
+
+            HomeEvent.ViewAllAlmostCookableRecipesClicked -> {
+                _navigation.value = HomeNavigation.ToRecipes(RecipeFilterType.ALMOST_COOKABLE)
             }
 
             HomeEvent.GoToShoppingListClicked -> {
@@ -219,7 +229,7 @@ class HomeViewModel @Inject constructor(
                 badge = "Todo listo",
                 badgeSeverity = BadgeSeverity.SUCCESS
             )
-        }.take(2)
+        }.take(3) // ✅ Cambio de 2 a 3
 
         _uiState.update { it.copy(
             cookableCount = recipes.size,
@@ -242,7 +252,7 @@ class HomeViewModel @Inject constructor(
                 badge = "${totalCount - missingCount}/$totalCount",
                 badgeSeverity = BadgeSeverity.WARNING
             )
-        }.take(2)
+        }.take(3) // ✅ Cambio de 2 a 3
 
         _uiState.update { it.copy(
             almostCookableCount = almostCookableList.size,

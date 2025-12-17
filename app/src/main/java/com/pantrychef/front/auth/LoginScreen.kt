@@ -78,35 +78,18 @@ private fun LoginContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Top bar con ayuda y cerrar
-        Row(
+        // Top bar centrado
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            contentAlignment = Alignment.Center
         ) {
-            Spacer(modifier = Modifier.width(48.dp)) // Balance
-
             Text(
                 text = "Iniciar sesión",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-
-            Row {
-                IconButton(onClick = { /* TODO: Ayuda */ }) {
-                    Icon(
-                        imageVector = Icons.Outlined.HelpOutline,
-                        contentDescription = "Ayuda"
-                    )
-                }
-                IconButton(onClick = { /* TODO: Cerrar */ }) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Cerrar"
-                    )
-                }
-            }
         }
 
         Column(

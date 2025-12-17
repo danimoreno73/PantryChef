@@ -72,34 +72,18 @@ private fun RegisterContent(
             .background(MaterialTheme.colorScheme.background)
     ) {
         // Top bar
+        // Top bar centrado
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.width(48.dp))
-
             Text(
                 text = "Crear cuenta",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-
-            Row {
-                IconButton(onClick = { /* TODO: Ayuda */ }) {
-                    Icon(
-                        imageVector = Icons.Outlined.HelpOutline,
-                        contentDescription = "Ayuda"
-                    )
-                }
-                IconButton(onClick = { /* TODO: Cerrar */ }) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Cerrar"
-                    )
-                }
-            }
         }
 
         Column(
@@ -143,33 +127,6 @@ private fun RegisterContent(
                 color = TextSecondary,
                 textAlign = TextAlign.Center
             )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Security Badge
-            Surface(
-                color = PrimaryGreenLight,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Shield,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Seguridad primero",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

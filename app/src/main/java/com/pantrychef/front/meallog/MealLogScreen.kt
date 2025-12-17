@@ -77,7 +77,7 @@ private fun MealLogContent(
                 fontWeight = FontWeight.Bold
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            /*Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(onClick = { onEvent(MealLogEvent.CalendarClicked) }) {
                     Icon(
                         imageVector = Icons.Filled.CalendarMonth,
@@ -90,7 +90,7 @@ private fun MealLogContent(
                         contentDescription = "Añadir comida"
                     )
                 }
-            }
+            }*/
         }
 
         // Search bar
@@ -234,10 +234,6 @@ private fun MealLogContent(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-
-                        TextButton(onClick = { /* TODO: Add meal for this date */ }) {
-                            Text("Añadir")
-                        }
                     }
                 }
 
@@ -262,7 +258,7 @@ private fun MealLogContent(
             }
         }
 
-        // Bottom action button
+        /* Bottom action button
         Surface(
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp,
@@ -285,7 +281,7 @@ private fun MealLogContent(
                     Text("Ver estadísticas")
                 }
             }
-        }
+        }*/
     }
 }
 

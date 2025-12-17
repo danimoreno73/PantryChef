@@ -23,10 +23,10 @@ fun DailySummaryCard(
     Row(
         modifier = modifier
             .background(
-                color = PrimaryGreenLight,
-                shape = RoundedCornerShape(16.dp)
+                color = PrimaryGreenLight.copy(alpha = 0.5f), // ✅ Más transparente
+                shape = RoundedCornerShape(12.dp) // ✅ Menos redondeado
             )
-            .padding(16.dp),
+            .padding(12.dp), // ✅ Menos padding
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
