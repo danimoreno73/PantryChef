@@ -6,13 +6,14 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -23,6 +24,7 @@ import com.pantrychef.front.components.SearchBar
 import com.pantrychef.front.navigation.Routes
 import com.pantrychef.front.theme.PantryChefTheme
 import com.pantrychef.front.theme.PrimaryGreenLight
+import com.pantrychef.front.theme.TextSecondary
 
 @Composable
 fun RecipesScreen(
@@ -153,55 +155,78 @@ private fun RecipesContent(
             RecipeTab.YOUR_RECIPES -> uiState.yourRecipes
         }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(recipes) { recipe ->
-                RecipeCardGrid(
-                    title = recipe.title,
-                    prepTime = recipe.prepTime,
-                    servings = recipe.servings,
-                    imageUrl = recipe.imageUrl,
-                    badge = recipe.badge,
-                    badgeSeverity = recipe.badgeSeverity,
-                    onClick = { onEvent(RecipesEvent.RecipeClicked(recipe.id)) }
+        // Contenido: Grid de recetas o mensaje vacío
+        if (recipes.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = when (uiState.activeTab) {
+                        RecipeTab.ALL -> "📚 No hay recetas disponibles\nExplora el catálogo completo"
+                        RecipeTab.COOKABLE -> "🍳 No tienes recetas cocinables\nAñade más productos a tu despensa"
+                        RecipeTab.ALMOST -> "📝 No hay recetas casi cocinables\nRevisa tu inventario"
+                        RecipeTab.UNDER_30MIN -> "⚡ No hay recetas rápidas disponibles\nExplora otras opciones"
+                        RecipeTab.YOUR_RECIPES -> "✏️ Aún no has creado recetas\nEmpieza a añadir tus favoritas"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center
                 )
             }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(recipes) { recipe ->
+                    RecipeCardGrid(
+                        title = recipe.title,
+                        prepTime = recipe.prepTime,
+                        servings = recipe.servings,
+                        imageUrl = recipe.imageUrl,
+                        badge = recipe.badge,
+                        badgeSeverity = recipe.badgeSeverity,
+                        onClick = { onEvent(RecipesEvent.RecipeClicked(recipe.id)) }
+                    )
+                }
 
-            // "Crear receta" card solo en tab "Tus recetas"
-            if (uiState.activeTab == RecipeTab.YOUR_RECIPES) {
-                item {
-                    Surface(
-                        onClick = { onEvent(RecipesEvent.CreateRecipeClicked) },
-                        color = PrimaryGreenLight,
-                        shape = MaterialTheme.shapes.large,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(4f / 3f)
-                    ) {
-                        Column(
+                // "Crear receta" card solo en tab "Tus recetas"
+                if (uiState.activeTab == RecipeTab.YOUR_RECIPES) {
+                    item {
+                        Surface(
+                            onClick = { onEvent(RecipesEvent.CreateRecipeClicked) },
+                            color = PrimaryGreenLight,
+                            shape = MaterialTheme.shapes.large,
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                                .fillMaxWidth()
+                                .aspectRatio(4f / 3f)
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Add,
-                                contentDescription = "Crear receta",
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Crear receta",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Add,
+                                    contentDescription = "Crear receta",
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Crear receta",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }
