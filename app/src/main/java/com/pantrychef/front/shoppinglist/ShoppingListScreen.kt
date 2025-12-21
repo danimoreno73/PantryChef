@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -175,126 +176,144 @@ private fun ShoppingListContent(
 
         val itemsByCategory = filteredItems.groupBy { it.category }
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            // De recetas section
-            itemsByCategory[ShoppingCategory.FROM_RECIPES]?.let { items ->
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "De recetas",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        TextButton(
-                            onClick = {
-                                onEvent(ShoppingListEvent.AddAllFromCategory(ShoppingCategory.FROM_RECIPES))
-                            }
-                        ) {
-                            Text("Añadir todo")
-                        }
-                    }
-                }
-
-                items(items) { item ->
-                    ShoppingItemRow(
-                        name = item.name,
-                        quantity = item.quantity,
-                        unit = item.unit,
-                        isChecked = item.isChecked,
-                        source = item.source,
-                        sourceTag = item.sourceTag,
-                        sourceTagSeverity = item.sourceTagSeverity,
-                        onCheckedChange = { checked ->
-                            onEvent(ShoppingListEvent.ItemCheckedChanged(item.id, checked))
-                        }
-                    )
-                }
+        // Contenido: Lista de items o mensaje vacío
+        if (filteredItems.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "🛒 Tu lista de compra está vacía\nLos productos sugeridos aparecerán aquí",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center
+                )
             }
-
-            // Bajo stock section
-            itemsByCategory[ShoppingCategory.LOW_STOCK]?.let { items ->
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Sugeridos",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        TextButton(
-                            onClick = {
-                                onEvent(ShoppingListEvent.AddAllFromCategory(ShoppingCategory.LOW_STOCK))
-                            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                // De recetas section
+                itemsByCategory[ShoppingCategory.FROM_RECIPES]?.let { items ->
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Añadir todo")
+                            Text(
+                                text = "De recetas",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            TextButton(
+                                onClick = {
+                                    onEvent(ShoppingListEvent.AddAllFromCategory(ShoppingCategory.FROM_RECIPES))
+                                }
+                            ) {
+                                Text("Añadir todo")
+                            }
                         }
                     }
-                }
 
-                items(items) { item ->
-                    ShoppingItemRow(
-                        name = item.name,
-                        quantity = item.quantity,
-                        unit = item.unit,
-                        isChecked = item.isChecked,
-                        source = item.source,
-                        sourceTag = item.sourceTag,
-                        sourceTagSeverity = item.sourceTagSeverity,
-                        onCheckedChange = { checked ->
-                            onEvent(ShoppingListEvent.ItemCheckedChanged(item.id, checked))
-                        }
-                    )
-                }
-            }
-
-            // Otros section
-            itemsByCategory[ShoppingCategory.OTHERS]?.let { items ->
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Otros",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                    items(items) { item ->
+                        ShoppingItemRow(
+                            name = item.name,
+                            quantity = item.quantity,
+                            unit = item.unit,
+                            isChecked = item.isChecked,
+                            source = item.source,
+                            sourceTag = item.sourceTag,
+                            sourceTagSeverity = item.sourceTagSeverity,
+                            onCheckedChange = { checked ->
+                                onEvent(ShoppingListEvent.ItemCheckedChanged(item.id, checked))
+                            }
                         )
-                        TextButton(onClick = { onEvent(ShoppingListEvent.AddManualItem) }) {
-                            Text("Añadir artículo")
-                        }
                     }
                 }
 
-                items(items) { item ->
-                    ShoppingItemRow(
-                        name = item.name,
-                        quantity = item.quantity,
-                        unit = item.unit,
-                        isChecked = item.isChecked,
-                        source = item.source,
-                        sourceTag = item.sourceTag,
-                        sourceTagSeverity = item.sourceTagSeverity,
-                        onCheckedChange = { checked ->
-                            onEvent(ShoppingListEvent.ItemCheckedChanged(item.id, checked))
+                // Bajo stock section
+                itemsByCategory[ShoppingCategory.LOW_STOCK]?.let { items ->
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Sugeridos",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            TextButton(
+                                onClick = {
+                                    onEvent(ShoppingListEvent.AddAllFromCategory(ShoppingCategory.LOW_STOCK))
+                                }
+                            ) {
+                                Text("Añadir todo")
+                            }
                         }
-                    )
+                    }
+
+                    items(items) { item ->
+                        ShoppingItemRow(
+                            name = item.name,
+                            quantity = item.quantity,
+                            unit = item.unit,
+                            isChecked = item.isChecked,
+                            source = item.source,
+                            sourceTag = item.sourceTag,
+                            sourceTagSeverity = item.sourceTagSeverity,
+                            onCheckedChange = { checked ->
+                                onEvent(ShoppingListEvent.ItemCheckedChanged(item.id, checked))
+                            }
+                        )
+                    }
+                }
+
+                // Otros section
+                itemsByCategory[ShoppingCategory.OTHERS]?.let { items ->
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Otros",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            TextButton(onClick = { onEvent(ShoppingListEvent.AddManualItem) }) {
+                                Text("Añadir artículo")
+                            }
+                        }
+                    }
+
+                    items(items) { item ->
+                        ShoppingItemRow(
+                            name = item.name,
+                            quantity = item.quantity,
+                            unit = item.unit,
+                            isChecked = item.isChecked,
+                            source = item.source,
+                            sourceTag = item.sourceTag,
+                            sourceTagSeverity = item.sourceTagSeverity,
+                            onCheckedChange = { checked ->
+                                onEvent(ShoppingListEvent.ItemCheckedChanged(item.id, checked))
+                            }
+                        )
+                    }
                 }
             }
         }

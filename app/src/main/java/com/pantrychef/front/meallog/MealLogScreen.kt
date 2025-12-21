@@ -4,9 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,13 +11,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.pantrychef.front.components.MealLogCard
-import com.pantrychef.front.components.PrimaryButton
 import com.pantrychef.front.components.SearchBar
 import com.pantrychef.front.theme.PantryChefTheme
 import com.pantrychef.front.theme.PrimaryGreenLight
@@ -76,21 +73,6 @@ private fun MealLogContent(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-
-            /*Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IconButton(onClick = { onEvent(MealLogEvent.CalendarClicked) }) {
-                    Icon(
-                        imageVector = Icons.Filled.CalendarMonth,
-                        contentDescription = "Calendario"
-                    )
-                }
-                IconButton(onClick = { onEvent(MealLogEvent.RegisterMealClicked) }) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Añadir comida"
-                    )
-                }
-            }*/
         }
 
         // Search bar
@@ -131,7 +113,7 @@ private fun MealLogContent(
                         else
                             MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(vertical = 12.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -148,12 +130,12 @@ private fun MealLogContent(
         ) {
             // Total comidas
             Surface(
-                color = PrimaryGreenLight,
+                color = PrimaryGreenLight.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -181,12 +163,12 @@ private fun MealLogContent(
 
             // Caseras
             Surface(
-                color = PrimaryGreenLight,
+                color = PrimaryGreenLight.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -215,73 +197,64 @@ private fun MealLogContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Meals list grouped by date
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            uiState.mealsByDate.forEach { (date, meals) ->
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = date,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+        // Meals list grouped by date o mensaje vacío
+        if (uiState.mealsByDate.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "📖 No hay comidas registradas\nEmpieza a registrar tus comidas desde las recetas",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                uiState.mealsByDate.forEach { (date, meals) ->
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = date,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    items(meals) { meal ->
+                        MealLogCard(
+                            mealName = meal.mealName,
+                            mealType = meal.mealType,
+                            time = meal.time,
+                            calories = meal.calories,
+                            imageUrl = meal.imageUrl,
+                            status = meal.status,
+                            onClick = { onEvent(MealLogEvent.MealClicked(meal.id)) }
                         )
+
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
 
-                items(meals) { meal ->
-                    MealLogCard(
-                        mealName = meal.mealName,
-                        mealType = meal.mealType,
-                        time = meal.time,
-                        calories = meal.calories,
-                        imageUrl = meal.imageUrl,
-                        status = meal.status,
-                        onClick = { onEvent(MealLogEvent.MealClicked(meal.id)) }
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
+                // Bottom spacing
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
                 }
-            }
-
-            // Bottom spacing for button
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
             }
         }
-
-        /* Bottom action button
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                PrimaryButton(
-                    text = "Registrar comida",
-                    onClick = { onEvent(MealLogEvent.RegisterMealClicked) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                TextButton(
-                    onClick = { onEvent(MealLogEvent.ViewStatsClicked) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Ver estadísticas")
-                }
-            }
-        }*/
     }
 }
 
