@@ -61,7 +61,7 @@
 - **Room** (persistencia local)
 - **Hilt** (inyección de dependencias)
 - **WorkManager** (tareas en segundo plano)
-- Dependencias preparadas para **Firebase Auth / Firestore** (aún sin implementación real en repos)
+- Estructura pensada para futura integración en **Firebase Auth / Firestore** (aún sin implementación real en repos)
 
 ---
 
@@ -275,7 +275,7 @@ erDiagram
 - **Android Studio** (recomendado: última versión estable)
 - **JDK 17** (o el que recomiende tu Android Studio para AGP)
 - **minSdk 24**
-- **targetSdk 36** (según configuración actual)
+- **targetSdk 35
 - Dispositivo/emulador Android compatible
 
 ---
