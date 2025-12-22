@@ -156,7 +156,8 @@ private fun RecipesContent(
         }
 
         // Contenido: Grid de recetas o mensaje vacío
-        if (recipes.isEmpty()) {
+        if (recipes.isEmpty() && uiState.activeTab != RecipeTab.YOUR_RECIPES) {
+            // Mensaje vacío para tabs normales (excepto "Tus recetas")
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -169,14 +170,63 @@ private fun RecipesContent(
                         RecipeTab.COOKABLE -> "🍳 No tienes recetas cocinables\nAñade más productos a tu despensa"
                         RecipeTab.ALMOST -> "📝 No hay recetas casi cocinables\nRevisa tu inventario"
                         RecipeTab.UNDER_30MIN -> "⚡ No hay recetas rápidas disponibles\nExplora otras opciones"
-                        RecipeTab.YOUR_RECIPES -> "✏️ Aún no has creado recetas\nEmpieza a añadir tus favoritas"
+                        else -> ""
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                     textAlign = TextAlign.Center
                 )
             }
+        } else if (recipes.isEmpty() && uiState.activeTab == RecipeTab.YOUR_RECIPES) {
+            // Estado vacío especial para "Tus recetas" con botón prominente
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Text(
+                        text = "✏️ Aún no has creado recetas\nEmpieza a añadir tus favoritas",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Botón destacado para crear primera receta
+                    Surface(
+                        onClick = { onEvent(RecipesEvent.CreateRecipeClicked) },
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.large,
+                        tonalElevation = 4.dp,
+                        shadowElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Add,
+                                contentDescription = "Crear receta",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Text(
+                                text = "Crear tu primera receta",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
         } else {
+            // Grid con recetas
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -195,7 +245,7 @@ private fun RecipesContent(
                     )
                 }
 
-                // "Crear receta" card solo en tab "Tus recetas"
+                // "Crear receta" card solo en tab "Tus recetas" cuando YA HAY recetas
                 if (uiState.activeTab == RecipeTab.YOUR_RECIPES) {
                     item {
                         Surface(
